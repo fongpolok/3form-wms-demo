@@ -1,0 +1,16 @@
+.git
+.github
+__pycache__
+*.pyc
+node_modules
+templates
+docs
+logs
+*.log
+db.sqlite3
+media
+static_new
+graphify-out
+.venv_demo
+.env
+.kiro

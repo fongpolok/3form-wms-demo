@@ -1,0 +1,28 @@
+# Self-contained backend image for hosting on Render.
+#
+# The original Dockerfile's `backend` target is dev-only: docker-compose
+# bind-mounts the actual source tree and supervisord.conf into it at
+# runtime, so the built image on its own has neither. This file copies
+# everything the API needs directly into the image and runs daphne
+# without supervisord (supervisord.conf only ever launched the one
+# daphne process, so it added a layer without adding a feature).
+FROM --platform=linux/amd64 python:3.8.10-slim
+
+WORKDIR /GreaterWMS
+
+RUN apt-get update --fix-missing && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./requirements.txt
+RUN python3 -m pip install --upgrade pip \
+    && pip3 install -U 'Twisted[tls,http2]' \
+    && pip3 install -r requirements.txt \
+    && pip3 install daphne
+
+COPY . .
+
+# Render sets $PORT at runtime; fresh migrate on boot since the free tier's
+# disk is ephemeral (SQLite here starts clean on every deploy/restart).
+CMD python3 manage.py migrate --noinput && \
+    daphne -b 0.0.0.0 -p ${PORT:-8008} greaterwms.asgi:application

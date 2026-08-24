@@ -12,3 +12,10 @@ bfg.jar
 error.log
 server.log
 /.history/
+# Local/AI-tooling cruft — not part of the app
+.DS_Store
+.venv_demo/
+graphify-out/
+.graphifyignore
+.github/copilot-instructions.md
+.github/References/

@@ -10,12 +10,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 from django.core.management.utils import get_random_secret_key
-SECRET_KEY = get_random_secret_key()
+SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -308,7 +308,30 @@ LOGGING = {
             "propagate": True,
             "level": "INFO",
         },
+        "stock": {
+            "handlers": ["console", "error", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "asn": {
+            "handlers": ["console", "error", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "goods": {
+            "handlers": ["console", "error", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
+}
+
+# Tunable thresholds for the low-stock / expiry alert feature (stock/services.py).
+# Change these instead of editing alert logic.
+WMS_ALERT_SETTINGS = {
+    "EXPIRY_ALERT_DAYS": 90,       # flag a lot as "expiring soon" within this many days
+    "LOW_STOCK_ALERT_ENABLED": True,
+    "EXPIRY_ALERT_ENABLED": True,
 }
 
 CORS_ALLOW_CREDENTIALS = True

@@ -1,4 +1,5 @@
 from django.db import models
+from .constants import WIP_STATUS_CHOICES, WIP_STATUS_RECEIVED
 
 class StockListModel(models.Model):
     goods_code = models.CharField(max_length=255, verbose_name="Goods Code")
@@ -20,6 +21,15 @@ class StockListModel(models.Model):
     back_order_stock = models.BigIntegerField(default=0, verbose_name='Back Order Stock')
     supplier = models.CharField(default='', max_length=255, verbose_name='Goods Supplier')
     openid = models.CharField(max_length=255, verbose_name="Openid")
+    # --- Lot / FEFO / WIP tracking (medical device traceability) ---
+    lot_number = models.CharField(default='', blank=True, max_length=255, verbose_name="Lot Number")
+    wip_id = models.CharField(max_length=64, unique=True, null=True, blank=True, verbose_name="WIP Unique ID")
+    expiry_date = models.DateField(null=True, blank=True, verbose_name="Expiry Date")
+    wip_status = models.IntegerField(default=WIP_STATUS_RECEIVED, choices=WIP_STATUS_CHOICES, verbose_name="WIP Status")
+    is_void = models.BooleanField(default=False, verbose_name="Void Label")
+    void_reason = models.CharField(default='', blank=True, max_length=255, verbose_name="Void Reason")
+    void_time = models.DateTimeField(null=True, blank=True, verbose_name="Void Time")
+    source_asn_code = models.CharField(default='', blank=True, max_length=255, verbose_name="Source ASN Code")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="Create Time")
     update_time = models.DateTimeField(auto_now=True, blank=True, null=True, verbose_name="Update Time")
 

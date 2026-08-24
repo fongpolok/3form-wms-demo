@@ -19,6 +19,14 @@ class StockListGetSerializer(serializers.ModelSerializer):
     pick_stock = serializers.IntegerField(read_only=True, required=False)
     picked_stock = serializers.IntegerField(read_only=True, required=False)
     back_order_stock = serializers.IntegerField(read_only=True, required=False)
+    lot_number = serializers.CharField(read_only=True, required=False)
+    wip_id = serializers.CharField(read_only=True, required=False)
+    expiry_date = serializers.DateField(read_only=True, required=False)
+    wip_status = serializers.IntegerField(read_only=True, required=False)
+    is_void = serializers.BooleanField(read_only=True, required=False)
+    void_reason = serializers.CharField(read_only=True, required=False)
+    void_time = serializers.DateTimeField(read_only=True, required=False, format='%Y-%m-%d %H:%M:%S')
+    source_asn_code = serializers.CharField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
     update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
 
@@ -26,6 +34,19 @@ class StockListGetSerializer(serializers.ModelSerializer):
         model = StockListModel
         exclude = ['openid']
         read_only_fields = ['id']
+
+class StockLotRecordSerializer(serializers.Serializer):
+    """Input for stock/services.record_lot - tags untracked on-hand stock
+    into a lot with a lot number + expiry date."""
+    goods_code = serializers.CharField(required=True, validators=[datasolve.data_validate])
+    lot_number = serializers.CharField(required=True, validators=[datasolve.data_validate])
+    expiry_date = serializers.DateField(required=False, allow_null=True)
+    qty = serializers.IntegerField(required=True, validators=[datasolve.qty_0_data_validate])
+    creater = serializers.CharField(required=True, validators=[datasolve.data_validate])
+    source_asn_code = serializers.CharField(required=False, allow_blank=True, default="")
+
+class StockVoidSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=True, validators=[datasolve.data_validate])
 
 class StockBinGetSerializer(serializers.ModelSerializer):
     bin_name = serializers.CharField(read_only=True, required=False)
@@ -94,6 +115,10 @@ class FileListRenderSerializer(serializers.ModelSerializer):
     pick_stock = serializers.IntegerField(read_only=True, required=False)
     picked_stock = serializers.IntegerField(read_only=True, required=False)
     back_order_stock = serializers.IntegerField(read_only=True, required=False)
+    lot_number = serializers.CharField(read_only=True, required=False)
+    wip_id = serializers.CharField(read_only=True, required=False)
+    expiry_date = serializers.DateField(read_only=True, required=False)
+    wip_status = serializers.IntegerField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
     update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
 

@@ -12,5 +12,9 @@ re_path(r'^bin/(?P<pk>\d+)/$', views.StockBinViewSet.as_view({
     'post': 'create'
 }), name="bin_1"),
 path(r'filelist/', views.FileListDownloadView.as_view({"get": "list"}), name="stocklistfilelistdownload"),
-path(r'filebinlist/', views.FileBinListDownloadView.as_view({"get": "list"}), name="binlistfiledetaildownload")
+path(r'filebinlist/', views.FileBinListDownloadView.as_view({"get": "list"}), name="binlistfiledetaildownload"),
+path(r'alerts/', views.StockAlertsView.as_view(), name="alerts"),
+path(r'recordlot/', views.StockLotRecordView.as_view(), name="recordlot"),
+re_path(r'^fefoorder/(?P<goods_code>[^/]+)/$', views.StockFefoOrderView.as_view(), name="fefoorder"),
+re_path(r'^(?P<pk>\d+)/void/$', views.StockVoidView.as_view(), name="void"),
 ]

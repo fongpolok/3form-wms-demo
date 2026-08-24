@@ -1,4 +1,7 @@
+import logging
+
 from rest_framework import viewsets
+from rest_framework.views import APIView
 from .models import StockListModel, StockBinModel
 from . import serializers
 from utils.page import MyPageNumberPagination
@@ -14,6 +17,9 @@ from .serializers import FileListRenderSerializer, FileBinListRenderSerializer
 from django.http import StreamingHttpResponse
 from .files import FileListRenderCN, FileListRenderEN, FileBinListRenderCN, FileBinListRenderEN
 from rest_framework.settings import api_settings
+from . import services
+
+logger = logging.getLogger("stock")
 
 class StockListViewSet(viewsets.ModelViewSet):
     """
@@ -47,6 +53,81 @@ class StockListViewSet(viewsets.ModelViewSet):
             return serializers.StockListGetSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
+
+class StockAlertsView(APIView):
+    """GET stock/alerts/ - combined low-stock + expiry alerts for the header
+    bell icon. Same openid scoping as every other endpoint in this app."""
+
+    def get(self, request):
+        openid = request.auth.openid
+        low_stock = services.get_low_stock_alerts(openid)
+        expiring = services.get_expiry_alerts(openid)
+        return Response({
+            "code": "200",
+            "msg": "Success",
+            "data": {
+                "low_stock": low_stock,
+                "expiring": expiring,
+                "count": len(low_stock) + len(expiring),
+            },
+        })
+
+class StockFefoOrderView(APIView):
+    """GET stock/fefoorder/<goods_code>/ - advisory pick order (earliest
+    expiry first). Phase 1: display only, does not reserve/move stock."""
+
+    def get(self, request, goods_code):
+        openid = request.auth.openid
+        lots = services.get_fefo_pick_order(openid, goods_code)
+        data = serializers.StockListGetSerializer(lots, many=True).data
+        return Response({"code": "200", "msg": "Success", "data": data})
+
+class StockLotRecordView(APIView):
+    """POST stock/recordlot/ - tag received-but-untracked stock into a lot
+    with a lot number + expiry date. See stock/services.py:record_lot for
+    why this doesn't touch the legacy ASN receiving flow."""
+
+    def post(self, request):
+        serializer = serializers.StockLotRecordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        openid = request.auth.openid
+        logger.info("Record lot requested: goods_code=%s lot_number=%s qty=%s openid=%s",
+                    data['goods_code'], data['lot_number'], data['qty'], openid)
+        lot = services.record_lot(
+            openid=openid,
+            goods_code=data['goods_code'],
+            lot_number=data['lot_number'],
+            expiry_date=data.get('expiry_date'),
+            qty=data['qty'],
+            creater=data['creater'],
+            source_asn_code=data.get('source_asn_code', ''),
+        )
+        return Response({
+            "code": "200",
+            "msg": "Success",
+            "data": serializers.StockListGetSerializer(lot).data,
+        })
+
+class StockVoidView(APIView):
+    """PATCH stock/<id>/void/ - soft-void a lot (never a hard delete, for
+    recall/audit traceability). Rejected if any of it was already picked/shipped."""
+
+    def patch(self, request, pk):
+        openid = request.auth.openid
+        lot = StockListModel.objects.filter(openid=openid, id=pk).first()
+        if lot is None:
+            raise APIException({"detail": "Not found"})
+        serializer = serializers.StockVoidSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        logger.info("Void lot requested: id=%s wip_id=%s reason=%s openid=%s",
+                    pk, lot.wip_id, serializer.validated_data['reason'], openid)
+        lot = services.void_lot(lot, serializer.validated_data['reason'])
+        return Response({
+            "code": "200",
+            "msg": "Success",
+            "data": serializers.StockListGetSerializer(lot).data,
+        })
 
 class StockBinViewSet(viewsets.ModelViewSet):
     """
