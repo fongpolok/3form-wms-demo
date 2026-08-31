@@ -22,6 +22,7 @@
             <q-btn :label="$t('refresh')" icon="refresh" @click="reFresh()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
             </q-btn>
+            <q-btn :label="$t('stock.view_stocklist.record_lot')" icon="add_box" color="primary" @click="openRecordLot()" />
           </q-btn-group>
           <q-space />
           <q-input outlined rounded dense debounce="300" color="primary" v-model="filter" :placeholder="$t('search')" @input="getSearchList()" @keyup.enter="getSearchList()">
@@ -49,12 +50,77 @@
             <q-td key="pick_stock" :props="props">{{ props.row.pick_stock }}</q-td>
             <q-td key="picked_stock" :props="props">{{ props.row.picked_stock }}</q-td>
             <q-td key="back_order_stock" :props="props">{{ props.row.back_order_stock }}</q-td>
+            <q-td key="lot_number" :props="props">{{ props.row.lot_number }}</q-td>
+            <q-td key="expiry_date" :props="props">{{ props.row.expiry_date }}</q-td>
+            <q-td key="wip_status" :props="props">
+              <q-chip v-if="props.row.lot_number" dense square :color="wipStatusColor(props.row)" text-color="white">
+                {{ wipStatusLabel(props.row.wip_status) }}
+              </q-chip>
+            </q-td>
             <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
             <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="action" :props="props">
+              <q-btn
+                v-if="props.row.lot_number && !props.row.is_void"
+                dense
+                flat
+                round
+                color="negative"
+                icon="block"
+                @click="openVoid(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('stock.view_stocklist.void_lot') }}</q-tooltip>
+              </q-btn>
+            </q-td>
           </q-tr>
         </template>
       </q-table>
     </transition>
+    <q-dialog v-model="recordLotForm">
+      <q-card style="min-width: 400px">
+        <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
+          <div>{{ $t('stock.view_stocklist.record_lot') }}</div>
+          <q-space></q-space>
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-pt-md">
+          <q-input dense outlined square v-model="recordLotData.goods_code" :label="$t('stock.view_stocklist.goods_code')" @keyup.enter="submitRecordLot()" />
+          <q-input dense outlined square v-model="recordLotData.lot_number" :label="$t('stock.view_stocklist.lot_number')" style="margin-top: 5px" @keyup.enter="submitRecordLot()" />
+          <q-input dense outlined square v-model.number="recordLotData.qty" type="number" :label="$t('stock.view_stocklist.qty')" style="margin-top: 5px" @keyup.enter="submitRecordLot()" />
+          <q-input dense outlined square readonly v-model="recordLotData.expiry_date" :label="$t('stock.view_stocklist.expiry_date')" style="margin-top: 5px">
+            <template v-slot:append>
+              <q-icon name="event" class="cursor-pointer">
+                <q-popup-proxy transition-show="scale" transition-hide="scale">
+                  <q-date v-model="recordLotData.expiry_date" mask="YYYY-MM-DD">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup :label="$t('index.close')" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
+        </q-card-section>
+        <q-card-actions align="right" class="q-mx-sm">
+          <q-btn class="full-width" color="primary" :label="$t('submit')" @click="submitRecordLot()" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="voidForm">
+      <q-card style="min-width: 350px">
+        <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
+          <div>{{ $t('stock.view_stocklist.void_lot') }}</div>
+          <q-space></q-space>
+          <q-btn dense flat icon="close" v-close-popup />
+        </q-bar>
+        <q-card-section class="q-pt-md">
+          <q-input dense outlined square v-model="voidReason" :label="$t('stock.view_stocklist.void_reason')" @keyup.enter="submitVoid()" />
+        </q-card-section>
+        <q-card-actions align="right" class="q-mx-sm">
+          <q-btn class="full-width" color="negative" :label="$t('stock.view_stocklist.void_lot')" @click="submitVoid()" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <template>
         <div v-show="max !== 0" class="q-pa-lg flex flex-center">
            <div>{{ total }} </div>
@@ -84,7 +150,7 @@
 <router-view />
 
 <script>
-import { getauth, getfile } from 'boot/axios_request';
+import { getauth, getfile, postauth, patchauth } from 'boot/axios_request';
 import { date, exportFile, LocalStorage } from 'quasar';
 
 export default {
@@ -122,8 +188,12 @@ export default {
         { name: 'pick_stock', label: this.$t('stock.view_stocklist.pick_stock'), field: 'pick_stock', align: 'center' },
         { name: 'picked_stock', label: this.$t('stock.view_stocklist.picked_stock'), field: 'picked_stock', align: 'center' },
         { name: 'back_order_stock', label: this.$t('stock.view_stocklist.back_order_stock'), field: 'back_order_stock', align: 'center' },
+        { name: 'lot_number', label: this.$t('stock.view_stocklist.lot_number'), field: 'lot_number', align: 'center' },
+        { name: 'expiry_date', label: this.$t('stock.view_stocklist.expiry_date'), field: 'expiry_date', align: 'center' },
+        { name: 'wip_status', label: this.$t('stock.view_stocklist.wip_status'), field: 'wip_status', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
-        { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' }
+        { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
+        { name: 'action', label: this.$t('action'), field: 'action', align: 'center' }
       ],
       filter: '',
       pagination: {
@@ -133,10 +203,93 @@ export default {
       current: 1,
       max: 0,
       total: 0,
-      paginationIpt: 1
+      paginationIpt: 1,
+      recordLotForm: false,
+      recordLotData: {
+        goods_code: '',
+        lot_number: '',
+        qty: null,
+        expiry_date: ''
+      },
+      voidForm: false,
+      voidReason: '',
+      voidTargetId: null,
+      // Matches stock/constants.py WIP_STATUS_CHOICES - kept in sync with the backend.
+      wipStatusLabels: {
+        10: this.$t('stock.view_stocklist.wip_received'),
+        20: this.$t('stock.view_stocklist.wip_inspected'),
+        30: this.$t('stock.view_stocklist.wip_putaway'),
+        40: this.$t('stock.view_stocklist.wip_picking'),
+        50: this.$t('stock.view_stocklist.wip_picked'),
+        60: this.$t('stock.view_stocklist.wip_delivered'),
+        70: this.$t('stock.view_stocklist.wip_used'),
+        90: this.$t('stock.view_stocklist.wip_void')
+      }
     };
   },
   methods: {
+    wipStatusLabel(code) {
+      return this.wipStatusLabels[code] || code;
+    },
+    wipStatusColor(row) {
+      if (row.is_void) {
+        return 'grey';
+      }
+      if (row.wip_status >= 60) {
+        return 'positive';
+      }
+      if (row.wip_status >= 40) {
+        return 'warning';
+      }
+      return 'primary';
+    },
+    openRecordLot() {
+      this.recordLotData = { goods_code: '', lot_number: '', qty: null, expiry_date: '' };
+      this.recordLotForm = true;
+    },
+    submitRecordLot() {
+      var _this = this;
+      if (!_this.recordLotData.goods_code || !_this.recordLotData.lot_number || !_this.recordLotData.qty) {
+        _this.$q.notify({ message: 'Please fill in Goods Code, Lot Number and Qty', icon: 'close', color: 'negative' });
+        return;
+      }
+      postauth('stock/recordlot/', {
+        goods_code: _this.recordLotData.goods_code,
+        lot_number: _this.recordLotData.lot_number,
+        expiry_date: _this.recordLotData.expiry_date || null,
+        qty: _this.recordLotData.qty,
+        creater: _this.login_name
+      })
+        .then(res => {
+          _this.recordLotForm = false;
+          _this.$q.notify({ message: 'Lot Recorded', icon: 'check', color: 'green' });
+          _this.getList();
+        })
+        .catch(err => {
+          _this.$q.notify({ message: err.detail, icon: 'close', color: 'negative' });
+        });
+    },
+    openVoid(row) {
+      this.voidTargetId = row.id;
+      this.voidReason = '';
+      this.voidForm = true;
+    },
+    submitVoid() {
+      var _this = this;
+      if (!_this.voidReason) {
+        _this.$q.notify({ message: 'Please enter a reason', icon: 'close', color: 'negative' });
+        return;
+      }
+      patchauth('stock/' + _this.voidTargetId + '/void/', { reason: _this.voidReason })
+        .then(res => {
+          _this.voidForm = false;
+          _this.$q.notify({ message: 'Lot Voided', icon: 'check', color: 'green' });
+          _this.getList();
+        })
+        .catch(err => {
+          _this.$q.notify({ message: err.detail, icon: 'close', color: 'negative' });
+        });
+    },
     getList() {
       var _this = this;
       getauth(_this.pathname + '?ordering=-update_time' + '&page=' + '' + _this.current, {})

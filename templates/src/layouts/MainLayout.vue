@@ -23,95 +23,6 @@
         <q-space />
         <transition appear enter-active-class="animated zoomIn">
           <q-btn
-            v-show="lang !== 'zh-hans'"
-            icon="img:statics/icons/IOS.png"
-            round
-            dense
-            flat
-            @click="brownlink('https://www.56yhz.com/md/ios/zh-CN')"
-            style="margin: 0 10px 0 10px"
-          >
-            <q-tooltip
-              content-class="bg-amber text-black shadow-4"
-              :offset="[15, 15]"
-              content-style="font-size: 12px"
-              >IOS APP
-            </q-tooltip>
-          </q-btn>
-        </transition>
-        <transition appear enter-active-class="animated zoomIn">
-          <q-btn
-            v-show="lang === 'zh-hans'"
-            icon="img:statics/icons/IOS.png"
-            round
-            dense
-            flat
-            @click="brownlink('https://www.56yhz.com/md/ios/en')"
-            style="margin: 0 10px 0 10px"
-          >
-            <q-tooltip
-              content-class="bg-amber text-black shadow-4"
-              :offset="[15, 15]"
-              content-style="font-size: 12px"
-              >IOS APP
-            </q-tooltip>
-          </q-btn>
-        </transition>
-        <transition appear enter-active-class="animated zoomIn">
-          <q-btn
-            v-show="lang !== 'zh-hans'"
-            icon="img:statics/icons/android.png"
-            round
-            dense
-            flat
-            @click="brownlink('https://www.56yhz.com/md/android/zh-CN')"
-            style="margin: 0 10px 0 10px"
-          >
-            <q-tooltip
-              content-class="bg-amber text-black shadow-4"
-              :offset="[15, 15]"
-              content-style="font-size: 12px"
-              >Android APP
-            </q-tooltip>
-          </q-btn>
-        </transition>
-        <transition appear enter-active-class="animated zoomIn">
-          <q-btn
-            v-show="lang === 'zh-hans'"
-            icon="img:statics/icons/android.png"
-            round
-            dense
-            flat
-            @click="brownlink('https://www.56yhz.com/md/android/en')"
-            style="margin: 0 10px 0 10px"
-          >
-            <q-tooltip
-              content-class="bg-amber text-black shadow-4"
-              :offset="[15, 15]"
-              content-style="font-size: 12px"
-              >Android APP
-            </q-tooltip>
-          </q-btn>
-        </transition>
-        <transition appear enter-active-class="animated zoomIn">
-          <q-btn
-            icon="img:statics/icons/GitHub.png"
-            round
-            dense
-            flat
-            @click="brownlink('https://github.com/GreaterWMS/GreaterWMS')"
-            style="margin: 0 10px 0 10px"
-          >
-            <q-tooltip
-              content-class="bg-amber text-black shadow-4"
-              :offset="[15, 15]"
-              content-style="font-size: 12px"
-              >GitHub Link</q-tooltip
-            >
-          </q-btn>
-        </transition>
-        <transition appear enter-active-class="animated zoomIn">
-          <q-btn
             icon="api"
             round
             dense
@@ -182,6 +93,49 @@
             </q-menu>
           </q-btn>
         </transition>
+        <template v-if="authin === '1'">
+          <transition appear enter-active-class="animated zoomIn">
+            <q-btn round dense flat color="white" icon="notifications" style="margin: 0 10px 0 10px">
+              <q-badge v-if="alertCount > 0" color="negative" floating>{{ alertCount }}</q-badge>
+              <q-tooltip
+                content-class="bg-amber text-black shadow-4"
+                :offset="[15, 15]"
+                content-style="font-size: 12px"
+                >{{ $t('index.alerts') }}</q-tooltip
+              >
+              <q-menu @show="fetchAlerts()">
+                <q-list style="min-width: 320px; max-width: 420px" separator>
+                  <q-item-label header>{{ $t('index.alerts') }}</q-item-label>
+                  <q-item v-if="alertCount === 0">
+                    <q-item-section>{{ $t('index.no_alerts') }}</q-item-section>
+                  </q-item>
+                  <q-item v-for="(item, index) in alertLowStock" :key="'low' + index">
+                    <q-item-section avatar>
+                      <q-chip color="negative" text-color="white" dense square>{{ $t('index.alert_low_stock') }}</q-chip>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ item.goods_code }} - {{ item.goods_desc }}</q-item-label>
+                      <q-item-label caption
+                        >{{ $t('index.alert_low_stock_detail', { onhand: item.onhand_stock, safety: item.safety_stock }) }}</q-item-label
+                      >
+                    </q-item-section>
+                  </q-item>
+                  <q-item v-for="(item, index) in alertExpiring" :key="'exp' + index">
+                    <q-item-section avatar>
+                      <q-chip color="warning" text-color="white" dense square>{{ $t('index.alert_expiring') }}</q-chip>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ item.goods_code }} - {{ item.goods_desc }} ({{ item.lot_number }})</q-item-label>
+                      <q-item-label caption
+                        >{{ $t('index.alert_expiring_detail', { days: item.days_left, date: item.expiry_date }) }}</q-item-label
+                      >
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+          </transition>
+        </template>
         <q-separator vertical />
         <template v-if="authin === '1'">
           <transition appear enter-active-class="animated zoomIn">
@@ -783,7 +737,14 @@ export default {
         password2: ''
       },
       needLogin: '',
-      activeTab: ''
+      activeTab: '',
+      alertCount: 0,
+      alertLowStock: [],
+      alertExpiring: [],
+      alertPollTimer: null,
+      // How often to re-check alerts, in ms - tunable, matches the backend's
+      // WMS_ALERT_SETTINGS thresholds conceptually (how fresh vs. how often).
+      alertPollIntervalMs: 5 * 60 * 1000
     }
   },
   methods: {
@@ -1059,6 +1020,22 @@ export default {
       } else {
         this.register = true
       }
+    },
+    fetchAlerts () {
+      var _this = this
+      if (_this.authin !== '1') {
+        return
+      }
+      getauth('stock/alerts/', {})
+        .then((res) => {
+          _this.alertLowStock = res.data.low_stock
+          _this.alertExpiring = res.data.expiring
+          _this.alertCount = res.data.count
+        })
+        .catch(() => {
+          // Alerts are advisory - a failed poll shouldn't interrupt the user
+          // with an error notification, just try again next interval.
+        })
     }
   },
   created () {
@@ -1092,11 +1069,20 @@ export default {
     Bus.$on('needLogin', (val) => {
       _this.isLoggedIn()
     })
+    if (_this.authin === '1') {
+      _this.fetchAlerts()
+    }
+    _this.alertPollTimer = window.setInterval(() => {
+      _this.fetchAlerts()
+    }, _this.alertPollIntervalMs)
   },
   updated () {
   },
   beforeDestroy () {
     Bus.$off('needLogin')
+    if (this.alertPollTimer) {
+      window.clearInterval(this.alertPollTimer)
+    }
   },
   destroyed () {
   },
@@ -1113,6 +1099,15 @@ export default {
         } else {
           this.admin = false
         }
+      }
+    },
+    authin (val) {
+      if (val === '1') {
+        this.fetchAlerts()
+      } else {
+        this.alertCount = 0
+        this.alertLowStock = []
+        this.alertExpiring = []
       }
     }
   }

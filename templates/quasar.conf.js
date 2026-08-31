@@ -161,9 +161,9 @@ module.exports = function (/* ctx */) {
       workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
       workboxOptions: {}, // only for GenerateSW
       manifest: {
-        name: 'wms templates',
-        short_name: 'GreaterWMS--Open Source Warehouse Management System',
-        description: 'GreaterWMS--Open Source Warehouse Management System',
+        name: '3Form WMS',
+        short_name: '3Form WMS',
+        description: '3Form WMS',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#ffffff',
@@ -229,7 +229,7 @@ module.exports = function (/* ctx */) {
         // https://www.electron.build/configuration/configuration
 
         appId: 'com.electron.greaterwms',
-        productName: 'GreaterWMS',
+        productName: '3Form WMS',
         copyright: '2022SR0153577',
         publish: [
           {
@@ -259,12 +259,12 @@ module.exports = function (/* ctx */) {
           ]
         },
         nsis: {
-          uninstallDisplayName: 'GreaterWMS',
+          uninstallDisplayName: '3Form WMS',
           oneClick: false,
           allowToChangeInstallationDirectory: true,
           createDesktopShortcut: true,
           createStartMenuShortcut: true,
-          shortcutName: 'GreaterWMS',
+          shortcutName: '3Form WMS',
           runAfterFinish: true
         },
         compression: 'maximum'
