@@ -1,6 +1,6 @@
 # 3Form WMS / MES / APS — Project Plan (agreed design)
 
-Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19.
+Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19.
 Diagrams in this folder: `01-system-map.html`, `02-production-flow.html`, `03-version-timeline.html`.
 
 ---
@@ -72,7 +72,7 @@ A **production-scale** factory system for small and medium manufacturers, sold a
 
 ### Hardware
 - **Scanners:** **Honeywell over TCP/IP**. Each brand has its own swappable driver; each scanner's network address maps to one workstation.
-- **Industrial cameras:** the camera runs its own vision (CV). We show the **live video only** (RTSP → MediaMTX → browser), and receive its **pass/fail over TCP/IP**. A fail is logged as scrap.
+- **Industrial cameras:** the camera runs its own vision (CV). We receive its **pass/fail over TCP/IP** (Cognex IS8500: `PASS` / `FAIL,<reason>`), and a fail is logged as scrap. **Live video is postponed**: the IS8500 firmware is older than 5.6.0, so there's no Web HMI.
 - **Warehouse rack camera inspection:** Phase 2, using the same method.
 - **Network alarm:** server, scanner or camera silent for 10 s (a setting you can change) → red screen + sound + "Fix it" checklist. Scans queue on the device, and the EM dashboard shows which workstation is down.
 
@@ -160,6 +160,8 @@ WMS_Demo/
 | 5 ERP + release | v3.5.0 | connector interface, mock SAP / Oracle (WO in, results out), Workday staff import, edge + cloud Docker files, install guide, troubleshooting guide | Import a mock ERP order, finish it, and see the result sent back; then you sign off → **git push** |
 
 ## 5. Noted for later (not in scope yet)
+- Camera live video (needs IS8500 firmware ≥ 5.6.0 for Web HMI, or another stream).
+- Stock data: the new ledger (`inventory`) is the source of truth; legacy GreaterWMS stock endpoints are read-only.
 - Pick **Azure or AWS** when the first client signs.
 - Real SAP / Oracle credentials replace the mocks.
 - Digital scale over TCP/IP for fill weight.

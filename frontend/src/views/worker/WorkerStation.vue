@@ -119,6 +119,7 @@ function handleScan(code) {
     if (!/^(B|WIP|WO)-/.test(code)) login(code)   // badge scan
     return
   }
+  if (board.value?.putaway && !/^(B|WIP|WO)-/.test(code)) return act('putaway', { bin: code })
   if (code.startsWith('B-')) {
     if (current.value?.batch_id === code) return flash(`${code} · ${t('worker.started')}`)
     if (current.value) return flash(t('worker.current') + `: ${current.value.batch_id}`, 'warn')
@@ -153,7 +154,7 @@ async function flushPending() {
 }
 
 const doneText = { start: 'worker.started', finish: 'worker.finished', scrap: 'worker.recorded',
-                   stop: 'worker.stopped', resume: 'worker.resumed', measure: 'worker.recorded' }
+                   stop: 'worker.stopped', resume: 'worker.resumed', measure: 'worker.recorded', putaway: 'worker.putDone' }
 
 async function act(action, body = {}) {
   const item = { ws: ws.value, action, body: { ...body, event_id: newEventId(), client_ts: new Date().toISOString() } }
@@ -161,6 +162,8 @@ async function act(action, body = {}) {
   try {
     const res = await send(item)
     if (action === 'measure' && res.in_spec === false) flash(`${t('worker.recorded')} · ⚠ ${t('worker.target')}`, 'warn')
+    else if (action === 'finish' && res.putaway) flash(t('worker.nowPutAway', { bin: res.suggested_bin || '—' }))
+    else if (action === 'putaway') flash(t('worker.putDone', { bin: res.bin_name }))
     else flash(t(doneText[action]))
     closeSheet()
     await loadBoard()
@@ -178,7 +181,7 @@ async function act(action, body = {}) {
 }
 
 function openSheet(name) {
-  form.value = { qty: name === 'finish' ? String(Math.max((current.value?.qty_in || 0), 0)) : '', reason: '', note: '', value: '' }
+  form.value = { qty: name === 'finish' ? String(current.value?.expected_good ?? current.value?.qty_in ?? 0) : '', reason: '', note: '', value: '' }
   sheet.value = name
   requestAnimationFrame(() => dialogEl.value?.showModal())
 }
@@ -222,7 +225,7 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); setAlarmSound(false) })
         <strong>{{ t('alarm.title') }}</strong>
         <p v-if="!health.serverOk">{{ t('alarm.serverDown') }}</p>
         <p v-else-if="!health.mongoOk">{{ t('alarm.db') }}</p>
-        <p v-for="d in scannerProblems" :key="d.device_id">{{ t('alarm.scannerDown', { id: d.device_id }) }}</p>
+        <p v-for="d in scannerProblems" :key="d.device_id">{{ t('alarm.deviceDown', { id: d.device_id }) }}</p>
         <p>{{ t('alarm.keepWorking') }}</p>
       </div>
       <button class="btn" @click="openSheet('fix')">{{ t('alarm.fix') }}</button>
@@ -306,6 +309,18 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); setAlarmSound(false) })
         </div>
       </section>
 
+      <!-- Put away a finished batch (QC station, order goes to stock) -->
+      <section v-else-if="board.putaway" class="card stack putaway">
+        <p class="eyebrow">{{ t('worker.putAway') }}</p>
+        <h2 class="mono">{{ board.putaway.batch_id }}</h2>
+        <p class="big">{{ board.putaway.product_name }} · {{ board.putaway.good_qty_out }} pcs</p>
+        <div class="row"><Icon name="scan" :size="28" /><p class="big">{{ t('worker.scanBin') }}</p></div>
+        <button v-if="board.putaway.suggested_bin" class="act act-primary" :disabled="busy"
+                @click="act('putaway', { bin: board.putaway.suggested_bin })">
+          <Icon name="box" :size="36" /> {{ t('worker.putInto', { bin: board.putaway.suggested_bin }) }}
+        </button>
+      </section>
+
       <!-- Queue -->
       <section v-else class="card stack">
         <div class="row"><Icon name="scan" :size="28" /><h2>{{ t('worker.scanBatch') }}</h2></div>
@@ -315,9 +330,10 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); setAlarmSound(false) })
             <div class="grow">
               <strong class="mono">{{ b.batch_id }}</strong>
               <span v-if="b.special_urgent" class="pill pill-alarm"><Icon name="alert" :size="14" /> {{ t('worker.urgent') }}</span>
+              <span v-if="b.waiting_material" class="pill pill-warn"><Icon name="pause" :size="14" /> {{ t('wo.waitingMaterial') }}</span>
               <p class="muted">{{ b.product_name }} · {{ b.last_good_qty ?? b.qty }} pcs</p>
             </div>
-            <button class="act act-primary small" :disabled="busy" @click="act('start', { batch_id: b.batch_id })">
+            <button class="act act-primary small" :disabled="busy || b.waiting_material" @click="act('start', { batch_id: b.batch_id })">
               <Icon name="play" :size="28" /> {{ t('worker.start') }}
             </button>
           </li>
@@ -418,6 +434,8 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); setAlarmSound(false) })
 .act-warn { border-color: var(--warn); color: var(--warn); }
 .act.small { min-height: var(--tap-worker); min-width: 180px; display: flex; justify-content: center; gap: 12px; }
 
+.putaway { border-color: var(--accent); border-width: 2px; }
+.putaway h2 { font-size: 2rem; }
 .queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .queue li { display: flex; gap: 16px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .queue strong { font-size: 1.375rem; margin-right: 8px; }

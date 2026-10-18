@@ -13,7 +13,7 @@ from accounts.services import device_from_token
 from core import config, mongo
 from core.ids import new_event_id
 
-from . import services
+from . import devices, lean, services
 from .workstations import list_workstations
 
 logger = logging.getLogger("app")
@@ -81,6 +81,8 @@ class WorkerActionView(APIView):
                 result = services.machine_resume(request.user, ws, event_id, **kw)
             elif action == "measure":
                 result = services.record_measurement(request.user, ws, d.get("value"), event_id, **kw)
+            elif action == "putaway":
+                result = services.put_away(request.user, ws, d.get("bin", ""), event_id, device=kw["device"])
             else:
                 return _error("Unknown action.", 404)
         except services.MesError as exc:
@@ -222,6 +224,61 @@ class GatewayHeartbeatView(APIView):
     def post(self, request):
         return Response(services.record_heartbeat(request.data.get("gateway_id", "gateway"),
                                                   request.data.get("devices", [])))
+
+
+class GatewayVisionView(APIView):
+    """Camera result line, e.g. PASS or FAIL,<reason> (camera does the image processing)."""
+    authentication_classes = []
+    permission_classes = [HasGatewayToken]
+
+    def post(self, request):
+        d = request.data
+        if not d.get("event_id") or not d.get("workstation") or str(d.get("result", "")).upper() not in ("PASS", "FAIL"):
+            return _error("event_id, workstation and result (PASS/FAIL) are required.")
+        return Response(devices.record_vision_result(d["event_id"], d.get("device_id", ""), d["workstation"],
+                                                     d["result"], d.get("reason", "")))
+
+
+class GatewayRackView(APIView):
+    authentication_classes = []
+    permission_classes = [HasGatewayToken]
+
+    def post(self, request):
+        d = request.data
+        if not d.get("event_id") or not d.get("bin_name") or not d.get("observed"):
+            return _error("event_id, bin_name and observed are required.")
+        return Response(devices.record_rack_report(d["event_id"], d.get("device_id", ""), d["bin_name"],
+                                                   d["observed"]))
+
+
+def _dates(request):
+    from datetime import date, timedelta
+    d_to = date.fromisoformat(request.query_params.get("to") or date.today().isoformat())
+    d_from = date.fromisoformat(request.query_params.get("from") or (d_to - timedelta(days=30)).isoformat())
+    return d_from, d_to
+
+
+class LeanView(APIView):
+    """OEE, yields, DPMO / sigma and scrap Pareto for a date range (EM / PIC)."""
+    permission_classes = [IsManagerOrAbove]
+
+    def get(self, request):
+        try:
+            d_from, d_to = _dates(request)
+        except ValueError:
+            return _error("Dates must look like 2026-10-19.")
+        t = request.user.tenant_openid
+        return Response({"from": d_from, "to": d_to, "oee": lean.oee(t, d_from, d_to),
+                         "yields": lean.yields(t, d_from, d_to),
+                         "pareto": lean.pareto(t, d_from, d_to, request.query_params.get("workstation"))})
+
+
+class SpcView(APIView):
+    permission_classes = [IsManagerOrAbove]
+
+    def get(self, request):
+        return Response(lean.spc(request.user.tenant_openid, request.query_params.get("step"),
+                                 request.query_params.get("points")))
 
 
 class HealthView(APIView):

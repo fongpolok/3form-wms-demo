@@ -20,8 +20,8 @@ from .workstations import get_workstation, list_workstations, routing
 
 logger = logging.getLogger("app")
 
-WO_RELEASED, WO_IN_PROGRESS, WO_DONE = "released", "in_progress", "done"
-BATCH_WAITING, BATCH_RUNNING, BATCH_DONE = "waiting", "running", "done"
+WO_WAITING_MATERIAL, WO_RELEASED, WO_IN_PROGRESS, WO_DONE = "waiting_material", "released", "in_progress", "done"
+BATCH_WAITING, BATCH_RUNNING, BATCH_PUTAWAY, BATCH_DONE = "waiting", "running", "awaiting_putaway", "done"
 WIP_RUNNING, WIP_DONE = "running", "done"
 SHIP_MODES = ("stock", "direct")
 
@@ -72,27 +72,34 @@ def create_work_order(account, data, source="PIC", request=None):
     if not data.get("product_code") or not data.get("due_date"):
         raise MesError("Product code and due date are required.")
 
-    steps = routing(data.get("industry"))
+    from inventory.models import Product
+    product = Product.objects.filter(tenant_openid=account.tenant_openid, goods_code=data["product_code"]).first()
+    steps = routing()
+    if product and product.routing:
+        steps = [s for s in steps if s["code"] in product.routing]
     db = _db()
     wo_id = ids.new_work_order_id(db)
     now = _now()
     wo = {
         "wo_id": wo_id, "tenant_openid": account.tenant_openid,
-        "product_code": data["product_code"], "product_name": data.get("product_name", ""),
+        "product_code": data["product_code"],
+        "product_name": data.get("product_name") or (product.name if product else ""),
         "client": data.get("client", ""), "client_priority": int(data.get("client_priority", 3)),
         "qty": qty, "due_date": str(data["due_date"]), "ship_mode": ship_mode,
         "source": source, "special_urgent": source == "PIC" or bool(data.get("special_urgent")),
-        "routing": [{"step_no": s["step_no"], "code": s["code"], "name": s["name"],
-                     "measurement": s.get("measurement"), "is_qc": bool(s.get("is_qc"))} for s in steps],
+        "routing": [{"step_no": i, "code": s["code"], "name": s["name"],
+                     "measurement": s.get("measurement"), "is_qc": bool(s.get("is_qc"))}
+                    for i, s in enumerate(steps, start=1)],
         "status": WO_RELEASED, "created_by": account.display_name, "created_at": now,
+        "materials": None, "shortages": [],
     }
     batches = []
     base, extra = divmod(qty, n_batches)
     for i in range(n_batches):
         batches.append({
             "batch_id": ids.new_batch_id(db), "wo_id": wo_id, "tenant_openid": account.tenant_openid,
-            "qty": base + (1 if i < extra else 0), "current_step_no": 1, "total_steps": len(steps),
-            "status": BATCH_WAITING, "good_qty_out": None, "created_at": now,
+            "qty": base + (1 if i < extra else 0), "current_step_no": 1, "current_step_code": steps[0]["code"],
+            "total_steps": len(steps), "status": BATCH_WAITING, "good_qty_out": None, "created_at": now,
         })
     with mongo.client().start_session() as s, s.start_transaction():
         db.work_orders.insert_one(wo, session=s)
@@ -101,7 +108,11 @@ def create_work_order(account, data, source="PIC", request=None):
                  after={"qty": qty, "batches": [b["batch_id"] for b in batches], "special_urgent": wo["special_urgent"]},
                  request=request)
     logger.info("Work order %s created by %s with %d batch(es)", wo_id, account, n_batches)
-    return _clean(wo), [_clean(b) for b in batches]
+    # Material gate: reserve now, or hold the whole order as "waiting for material".
+    from . import materials
+    materials.gate_new_order(account.tenant_openid, wo_id)
+    wo = db.work_orders.find_one({"wo_id": wo_id}, {"_id": 0})
+    return wo, [_clean(b) for b in batches]
 
 
 def list_work_orders(tenant_openid, status=None, limit=200):
@@ -135,7 +146,10 @@ def start_step(account, workstation_code, batch_id, event_id, device=None, clien
     if ws is None:
         raise MesError(f"Unknown workstation {workstation_code}.")
     db = _db()
-    with mongo.client().start_session() as s, s.start_transaction():
+    from django.db import transaction as pg_transaction
+
+    from . import materials
+    with pg_transaction.atomic(), mongo.client().start_session() as s, s.start_transaction():
         if db.step_events.find_one({"event_id": event_id}, session=s):
             return _clean(db.wip.find_one({"start_event_id": event_id}, session=s))
         if _running_wip(db, workstation_code, s):
@@ -143,17 +157,26 @@ def start_step(account, workstation_code, batch_id, event_id, device=None, clien
         batch = db.batches.find_one({"batch_id": batch_id, "tenant_openid": account.tenant_openid}, session=s)
         if batch is None:
             raise MesError(f"Batch {batch_id} not found.")
-        if batch["status"] == BATCH_DONE:
-            raise MesError("This batch is already finished.")
-        if batch["current_step_no"] != ws["step_no"]:
-            raise MesError(f"This batch is at step {batch['current_step_no']}, not this workstation's step {ws['step_no']}.")
+        if batch["status"] in (BATCH_DONE, BATCH_PUTAWAY):
+            raise MesError("This batch has already finished production.")
+        wo = db.work_orders.find_one({"wo_id": batch["wo_id"]}, session=s)
+        if wo["status"] == WO_WAITING_MATERIAL:
+            raise MesError("Waiting for material. This order cannot start until the warehouse has replenished it.")
+        step_code = batch.get("current_step_code") or wo["routing"][batch["current_step_no"] - 1]["code"]
+        if step_code != ws["step_code"]:
+            raise MesError(f"This batch is at step {batch['current_step_no']} ({step_code}), "
+                           f"not this workstation's step ({ws['step_code']}).")
         if batch["status"] == BATCH_RUNNING:
             raise MesError("This batch is already running at another workstation.")
-        qty_in = batch["qty"] if ws["step_no"] == 1 else batch.get("last_good_qty", batch["qty"])
+        step_no = batch["current_step_no"]
+        qty_in = batch["qty"] if step_no == 1 else batch.get("last_good_qty", batch["qty"])
         now = _now()
+        if step_no == 1:
+            used = materials.consume_for_batch(account.tenant_openid, wo, batch, actor=account.display_name)
+            db.batches.update_one({"batch_id": batch_id}, {"$set": {"materials_used": used}}, session=s)
         wip = {
-            "wip_id": ids.new_wip_id(batch_id, ws["step_no"], db), "batch_id": batch_id, "wo_id": batch["wo_id"],
-            "tenant_openid": account.tenant_openid, "step_no": ws["step_no"], "step_code": ws["step_code"],
+            "wip_id": ids.new_wip_id(batch_id, step_no, db), "batch_id": batch_id, "wo_id": batch["wo_id"],
+            "tenant_openid": account.tenant_openid, "step_no": step_no, "step_code": ws["step_code"],
             "workstation": workstation_code, "status": WIP_RUNNING, "qty_in": qty_in,
             "good_qty": None, "scrap_qty": 0, "downtime_seconds": 0, "stopped_since": None,
             "started_at": now, "finished_at": None, "started_by": account.staff_id,
@@ -161,7 +184,7 @@ def start_step(account, workstation_code, batch_id, event_id, device=None, clien
         }
         db.wip.insert_one(wip, session=s)
         _insert_event(db, s, {"event_id": event_id, "type": "start", "wip_id": wip["wip_id"], "batch_id": batch_id,
-                              "wo_id": batch["wo_id"], "workstation": workstation_code, "step_no": ws["step_no"],
+                              "wo_id": batch["wo_id"], "workstation": workstation_code, "step_no": step_no,
                               "tenant_openid": account.tenant_openid, "ts": now, "client_ts": client_ts,
                               "source": "worker", **_actor_fields(account, device)})
         db.batches.update_one({"batch_id": batch_id}, {"$set": {"status": BATCH_RUNNING}}, session=s)
@@ -278,13 +301,16 @@ def record_measurement(account, workstation_code, value, event_id, device=None, 
         if not _insert_event(db, s, {"event_id": event_id, "type": "measure", "wip_id": wip["wip_id"],
                                      "batch_id": wip["batch_id"], "wo_id": wip["wo_id"],
                                      "workstation": workstation_code, "step_no": wip["step_no"],
+                                     "step_code": wip["step_code"],
                                      "tenant_openid": account.tenant_openid, "measure_name": m["name"],
                                      "unit": m["unit"], "value": value, "target": target, "in_spec": in_spec,
                                      "ts": _now(), "client_ts": client_ts, "source": "worker",
                                      **_actor_fields(account, device)}):
             return {"duplicate": True}
     logger.info("MEASURE %s %s=%s%s by %s", workstation_code, m["name"], value, m["unit"], account.staff_id)
-    return {"recorded": True, "in_spec": in_spec}
+    from .lean import check_new_measurement
+    spc_hits = check_new_measurement(account.tenant_openid, wip["step_code"])
+    return {"recorded": True, "in_spec": in_spec, "spc_alarm": bool(spc_hits)}
 
 
 def finish_step(account, workstation_code, good_qty, event_id, device=None, client_ts=None):
@@ -296,7 +322,8 @@ def finish_step(account, workstation_code, good_qty, event_id, device=None, clie
         raise MesError("Good quantity cannot be negative.")
     db = _db()
     now = _now()
-    with mongo.client().start_session() as s, s.start_transaction():
+    from django.db import transaction as pg_transaction
+    with pg_transaction.atomic(), mongo.client().start_session() as s, s.start_transaction():
         wip = _require_running(db, workstation_code, s)
         if good_qty + wip["scrap_qty"] > wip["qty_in"]:
             raise MesError(f"Good + scrap ({good_qty + wip['scrap_qty']}) is more than the {wip['qty_in']} pieces received.")
@@ -311,19 +338,69 @@ def finish_step(account, workstation_code, good_qty, event_id, device=None, clie
                           {"$set": {"status": WIP_DONE, "good_qty": good_qty, "finished_at": now,
                                     "finished_by": account.staff_id}}, session=s)
         batch = db.batches.find_one({"batch_id": wip["batch_id"]}, session=s)
+        wo = db.work_orders.find_one({"wo_id": batch["wo_id"]}, session=s)
         last_step = wip["step_no"] >= batch["total_steps"]
-        update = {"last_good_qty": good_qty, "status": BATCH_DONE if last_step else BATCH_WAITING}
+        update = {"last_good_qty": good_qty, "status": BATCH_WAITING}
         if last_step:
-            update.update({"good_qty_out": good_qty, "finished_at": now})
+            update.update({"good_qty_out": good_qty, "qc_passed_at": now, "putaway_ws": workstation_code})
+            if wo["ship_mode"] == "stock" and good_qty > 0:
+                update["status"] = BATCH_PUTAWAY          # worker scans a bin label next
+                from inventory.services import suggest_fg_bin
+                update["suggested_bin"] = suggest_fg_bin(account.tenant_openid)
+            else:
+                update.update({"status": BATCH_DONE, "finished_at": now})
+                if good_qty > 0:
+                    from inventory.services import ship_direct
+                    ship = ship_direct(account.tenant_openid, wo.get("client", ""), batch["batch_id"],
+                                       wo["product_code"], good_qty, account.display_name)
+                    update["shipment_id"] = ship.shipment_id
         else:
             update["current_step_no"] = wip["step_no"] + 1
+            update["current_step_code"] = wo["routing"][wip["step_no"]]["code"]
         db.batches.update_one({"batch_id": batch["batch_id"]}, {"$set": update}, session=s)
-        if last_step and not db.batches.find_one({"wo_id": batch["wo_id"], "status": {"$ne": BATCH_DONE}},
-                                                 session=s):
-            db.work_orders.update_one({"wo_id": batch["wo_id"]}, {"$set": {"status": WO_DONE, "finished_at": now}},
-                                      session=s)
+        _complete_order_if_done(db, s, batch["wo_id"], now)
     logger.info("FINISH %s good=%d by %s", wip["wip_id"], good_qty, account.staff_id)
-    return {"finished": True, "wip_id": wip["wip_id"], "batch_done": last_step}
+    return {"finished": True, "wip_id": wip["wip_id"], "batch_done": last_step,
+            "putaway": update["status"] == BATCH_PUTAWAY, "suggested_bin": update.get("suggested_bin")}
+
+
+def _complete_order_if_done(db, s, wo_id, now):
+    if not db.batches.find_one({"wo_id": wo_id, "status": {"$ne": BATCH_DONE}}, session=s):
+        db.work_orders.update_one({"wo_id": wo_id}, {"$set": {"status": WO_DONE, "finished_at": now}}, session=s)
+
+
+def put_away(account, workstation_code, scanned_bin, event_id, device=None):
+    """Worker at QC scans a bin label: the finished batch goes into stock (FEFO lot = batch ID)."""
+    from django.db import transaction as pg_transaction
+
+    from inventory.services import InventoryError, put_away_finished, resolve_bin
+    db = _db()
+    batch = db.batches.find_one({"tenant_openid": account.tenant_openid, "status": BATCH_PUTAWAY,
+                                 "putaway_ws": workstation_code}, sort=[("qc_passed_at", 1)])
+    if batch is None:
+        raise MesError("Nothing is waiting to be put away at this workstation.")
+    bin_name = resolve_bin(account.tenant_openid, scanned_bin.strip())
+    if bin_name is None:
+        raise MesError(f"Unknown bin label {scanned_bin}.")
+    wo = db.work_orders.find_one({"wo_id": batch["wo_id"]})
+    now = _now()
+    try:
+        with pg_transaction.atomic(), mongo.client().start_session() as s, s.start_transaction():
+            if not _insert_event(db, s, {"event_id": event_id, "type": "putaway", "batch_id": batch["batch_id"],
+                                         "wo_id": batch["wo_id"], "workstation": workstation_code,
+                                         "tenant_openid": account.tenant_openid, "qty": batch["good_qty_out"],
+                                         "bin_name": bin_name, "ts": now, "source": "worker",
+                                         **_actor_fields(account, device)}):
+                return {"duplicate": True}
+            put_away_finished(account.tenant_openid, wo["product_code"], batch["batch_id"], batch["good_qty_out"],
+                              bin_name, account.display_name)
+            db.batches.update_one({"batch_id": batch["batch_id"]},
+                                  {"$set": {"status": BATCH_DONE, "finished_at": now, "bin_name": bin_name}}, session=s)
+            _complete_order_if_done(db, s, batch["wo_id"], now)
+    except InventoryError as exc:
+        raise MesError(str(exc))
+    logger.info("PUTAWAY batch %s -> %s by %s", batch["batch_id"], bin_name, account.staff_id)
+    return {"put_away": True, "batch_id": batch["batch_id"], "bin_name": bin_name}
 
 
 # --------------------------------------------------------- PIC corrections
@@ -381,27 +458,41 @@ def worker_board(tenant_openid, workstation_code):
         raise MesError(f"Unknown workstation {workstation_code}.")
     db = _db()
     wip = db.wip.find_one({"workstation": workstation_code, "status": WIP_RUNNING, "tenant_openid": tenant_openid},
-                          {"_id": 0, "scrap_qty": 0, "edited_by_pic": 0})
-    queue = list(db.batches.find({"tenant_openid": tenant_openid, "current_step_no": ws["step_no"],
+                          {"_id": 0, "edited_by_pic": 0})
+    if wip:
+        # The worker never sees scrap totals, only the suggested "good pieces" for Finish.
+        wip["expected_good"] = max(wip["qty_in"] - wip.pop("scrap_qty", 0), 0)
+    queue = list(db.batches.find({"tenant_openid": tenant_openid, "current_step_code": ws["step_code"],
                                   "status": BATCH_WAITING}, {"_id": 0, "batch_id": 1, "wo_id": 1, "qty": 1,
-                                                             "last_good_qty": 1})
-                 .sort("created_at", 1).limit(20))
-    wos = {w["wo_id"]: w for w in db.work_orders.find({"wo_id": {"$in": [b["wo_id"] for b in queue]
-                                                                 + ([wip["wo_id"]] if wip else [])}},
+                                                             "last_good_qty": 1, "created_at": 1})
+                 .sort("created_at", 1).limit(30))
+    putaway = db.batches.find_one({"tenant_openid": tenant_openid, "status": BATCH_PUTAWAY,
+                                   "putaway_ws": workstation_code},
+                                  {"_id": 0, "batch_id": 1, "wo_id": 1, "good_qty_out": 1, "suggested_bin": 1},
+                                  sort=[("qc_passed_at", 1)])
+    wo_ids = [b["wo_id"] for b in queue] + ([wip["wo_id"]] if wip else []) + ([putaway["wo_id"]] if putaway else [])
+    wos = {w["wo_id"]: w for w in db.work_orders.find({"wo_id": {"$in": wo_ids}},
                                                        {"_id": 0, "wo_id": 1, "product_name": 1, "special_urgent": 1,
-                                                        "due_date": 1})}
-    for b in queue:
-        b["product_name"] = wos.get(b["wo_id"], {}).get("product_name", "")
-        b["special_urgent"] = wos.get(b["wo_id"], {}).get("special_urgent", False)
+                                                        "due_date": 1, "status": 1, "client_priority": 1})}
+    for b in queue + ([putaway] if putaway else []):
+        w = wos.get(b["wo_id"], {})
+        b["product_name"] = w.get("product_name", "")
+        b["special_urgent"] = w.get("special_urgent", False)
+        b["waiting_material"] = w.get("status") == WO_WAITING_MATERIAL
+        b["due_date"] = w.get("due_date", "")
+        b.pop("created_at", None)
     if wip:
         wip["product_name"] = wos.get(wip["wo_id"], {}).get("product_name", "")
         wip["machine_stopped"] = bool(wip.get("stopped_since"))
-    queue.sort(key=lambda b: (not b["special_urgent"],))
+    # Ready batches first, then urgent, earliest due, client priority.
+    queue.sort(key=lambda b: (b["waiting_material"], not b["special_urgent"], b["due_date"],
+                              wos.get(b["wo_id"], {}).get("client_priority", 3)))
     industry = config.industry()
     return {
         "workstation": ws,
         "current": wip,
         "queue": queue,
+        "putaway": putaway,
         "scrap_reasons": [r for r in industry["scrap_reasons"] if not r.get("system_only")],
         "downtime_reasons": industry["downtime_reasons"],
         "health": device_health_for(workstation_code),
@@ -419,8 +510,11 @@ def progress_overview(tenant_openid, limit=100):
     out = []
     for w in wos:
         bs = batches.get(w["wo_id"], [])
-        total = sum(b["total_steps"] for b in bs) or 1
-        done_steps = sum(b["total_steps"] if b["status"] == BATCH_DONE else b["current_step_no"] - 1 for b in bs)
+        # each batch: its steps + the final stage (into stock / to client)
+        total = sum(b["total_steps"] + 1 for b in bs) or 1
+        done_steps = sum(b["total_steps"] + 1 if b["status"] == BATCH_DONE
+                         else b["total_steps"] if b["status"] == BATCH_PUTAWAY
+                         else b["current_step_no"] - 1 for b in bs)
         out.append({**w, "batches": bs, "progress_pct": round(100.0 * done_steps / total, 1),
                     "final_stage": "To stock" if w["ship_mode"] == "stock" else "Ship to client"})
     return out

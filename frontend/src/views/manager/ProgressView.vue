@@ -15,7 +15,7 @@ const summary = computed(() => {
   const wos = data.value || []
   return {
     running: wos.filter((w) => w.status === 'in_progress').length,
-    waiting: wos.filter((w) => w.status === 'released').length,
+    waiting: wos.filter((w) => w.status === 'released' || w.status === 'waiting_material').length,
     done: wos.filter((w) => w.status === 'done').length,
     late: wos.filter((w) => w.status !== 'done' && w.due_date < today).length,
   }
@@ -46,6 +46,7 @@ const summary = computed(() => {
           <div class="row tight">
             <h2 class="mono">{{ wo.wo_id }}</h2>
             <span v-if="wo.special_urgent" class="pill pill-alarm"><Icon name="alert" :size="14" /> {{ t('progress.urgent') }}</span>
+            <span v-if="wo.status === 'waiting_material'" class="pill pill-warn"><Icon name="alert" :size="14" /> {{ t('wo.waitingMaterial') }}</span>
             <span v-if="wo.status === 'done'" class="pill pill-ok"><Icon name="check" :size="14" /> {{ t('progress.done') }}</span>
             <span v-else-if="wo.due_date < today" class="pill pill-warn"><Icon name="alert" :size="14" /> {{ t('progress.late') }}</span>
           </div>

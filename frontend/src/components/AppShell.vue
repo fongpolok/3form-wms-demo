@@ -9,6 +9,8 @@ import { useSession } from '../composables/session.js'
 import { useHealth } from '../composables/health.js'
 import Icon from './Icon.vue'
 import ThemeSwitch from './ThemeSwitch.vue'
+import { get } from '../api/client.js'
+import { usePolled } from '../composables/poll.js'
 
 const { t, locale } = useI18n()
 const session = useSession()
@@ -18,18 +20,30 @@ const router = useRouter()
 
 const base = computed(() => (session.role.value === 'PIC' ? '/pic' : '/manager'))
 const NAV = [
+  { group: 'nav.gProduction' },
   { to: 'progress', icon: 'chart', label: 'nav.progress', min: 'EM' },
+  { to: 'lean', icon: 'gauge', label: 'nav.lean', min: 'EM' },
   { to: 'workstations', icon: 'station', label: 'nav.workstations', min: 'EM' },
   { to: 'work-orders', icon: 'list', label: 'nav.workOrders', min: 'EM' },
+  { to: 'products', icon: 'ruler', label: 'nav.products', min: 'EM' },
   { to: 'scrap', icon: 'flag', label: 'nav.scrap', min: 'EM' },
+  { group: 'nav.gWarehouse' },
   { to: 'stock', icon: 'box', label: 'nav.stock', min: 'EM' },
+  { to: 'inbound', icon: 'download', label: 'nav.inbound', min: 'EM' },
+  { to: 'outbound', icon: 'out', label: 'nav.outbound', min: 'EM' },
+  { to: 'bins', icon: 'list', label: 'nav.bins', min: 'EM' },
+  { to: 'count', icon: 'check', label: 'nav.count', min: 'EM' },
+  { group: 'nav.gAdmin' },
+  { to: 'alerts', icon: 'alert', label: 'nav.alerts', min: 'EM' },
   { to: 'export', icon: 'download', label: 'nav.export', min: 'EM' },
   { to: 'accounts', icon: 'people', label: 'nav.accounts', min: 'PIC' },
   { to: 'devices', icon: 'tablet', label: 'nav.devices', min: 'PIC' },
   { to: 'audit', icon: 'shield', label: 'nav.audit', min: 'PIC' },
   { to: 'settings', icon: 'gear', label: 'nav.settings', min: 'EM' },
 ]
-const items = computed(() => NAV.filter((n) => session.can(n.min)))
+const alerts = usePolled(() => get('/api/v1/alerts'), 20000)
+const alarmCount = computed(() => (alerts.data.value || []).length)
+const items = computed(() => NAV.filter((n) => n.group || session.can(n.min)))
 
 async function logout() {
   await session.logout()
@@ -49,10 +63,13 @@ async function logout() {
         </div>
       </div>
       <nav>
-        <RouterLink v-for="n in items" :key="n.to" :to="`${base}/${n.to}`" class="nav-item"
-                    :aria-current="route.path.endsWith('/' + n.to) ? 'page' : undefined">
-          <Icon :name="n.icon" :size="20" /> <span>{{ t(n.label) }}</span>
-        </RouterLink>
+        <template v-for="n in items" :key="n.to || n.group">
+          <p v-if="n.group" class="group">{{ t(n.group) }}</p>
+          <RouterLink v-else :to="`${base}/${n.to}`" class="nav-item"
+                      :aria-current="route.path.endsWith('/' + n.to) ? 'page' : undefined">
+            <Icon :name="n.icon" :size="20" /> <span>{{ t(n.label) }}</span>
+          </RouterLink>
+        </template>
       </nav>
     </aside>
 
@@ -60,6 +77,9 @@ async function logout() {
       <header class="top">
         <span v-if="!health.serverOk" class="pill pill-alarm"><Icon name="wifi" :size="16" /> {{ t('common.offline') }}</span>
         <span class="spacer"></span>
+        <RouterLink :to="`${base}/alerts`" class="bell" :aria-label="`${t('nav.alerts')}: ${alarmCount}`">
+          <Icon name="alert" :size="20" /><span v-if="alarmCount" class="count">{{ alarmCount }}</span>
+        </RouterLink>
         <ThemeSwitch />
         <label class="lang">
           <span class="sr-only">{{ t('common.language') }}</span>
@@ -91,6 +111,11 @@ nav { display: grid; gap: 2px; }
 .nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: var(--radius);
             color: var(--ink); text-decoration: none; font-weight: 500; }
 .nav-item:hover { background: var(--surface-2); }
+.group { margin: 14px 12px 4px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.bell { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); color: var(--ink); }
+.bell:hover { background: var(--surface-2); }
+.count { position: absolute; top: 4px; right: 2px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+         background: #b91c1c; color: #fff; font-size: 0.75rem; font-weight: 700; display: grid; place-items: center; }
 .nav-item[aria-current='page'] { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
 .main-col { min-width: 0; display: grid; grid-template-rows: auto 1fr; }
 .top { display: flex; align-items: center; gap: 16px; padding: 12px 28px; border-bottom: 1px solid var(--line); background: var(--surface); }
@@ -102,6 +127,7 @@ main { padding: 28px; max-width: 1280px; width: 100%; outline: none; }
   .shell { grid-template-columns: 1fr; }
   .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
   nav { grid-auto-flow: column; overflow-x: auto; }
+  .group { display: none; }
   .nav-item span { white-space: nowrap; }
   .top { padding: 12px 16px; flex-wrap: wrap; }
   main { padding: 16px; }

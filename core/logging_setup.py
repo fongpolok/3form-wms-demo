@@ -5,6 +5,8 @@ Builds Django's LOGGING dict: one daily-rotated file per channel
 Use it with `logging.getLogger("<channel>")`. The existing GreaterWMS loggers
 (stock, asn, goods, django) are routed into app.log.
 """
+import os
+import sys
 from pathlib import Path
 
 from core import config
@@ -15,6 +17,8 @@ LEGACY_LOGGERS = ["django", "scripts", "stock", "asn", "goods", "dn", "accounts"
 
 def build_logging(base_dir):
     log_dir = Path(base_dir) / config.get("logging.dir", "logs")
+    if "pytest" in sys.modules or os.environ.get("THREEFORM_TEST_LOGS"):
+        log_dir = log_dir / "test"          # automated tests never write into the real logs
     log_dir.mkdir(parents=True, exist_ok=True)
     keep_days = int(config.get("logging.keep_days", 90))
     level = config.get("logging.level", "INFO")

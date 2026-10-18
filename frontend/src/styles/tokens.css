@@ -28,6 +28,11 @@
   --alarm: #b91c1c;
   --alarm-soft: #fdecec;
   --focus: #0050cc;
+  /* Charts (validated with dataviz validate_palette.js: light vs #FFFFFF, dark vs #121A2B) */
+  --chart-1: #0050cc;      /* the series / the "vital few" */
+  --chart-2: #6b8fd1;      /* de-emphasised bars */
+  --chart-grid: #e5e7eb;
+  --chart-ref: #4b5563;    /* reference lines (limits, targets) */
 
   --font-body: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   --font-display: 'Source Serif 4', 'Noto Serif TC', Georgia, serif;
@@ -66,6 +71,10 @@
     --alarm: #f87171;
     --alarm-soft: #3a1515;
     --focus: #8ab8ff;
+    --chart-1: #5592ec;
+    --chart-2: #3b5cc9;    /* 2.95:1 vs surface: always paired with value labels + table view */
+    --chart-grid: #26314a;
+    --chart-ref: #b6bfce;
     color-scheme: dark;
   }
 }
@@ -88,5 +97,9 @@
   --alarm: #f87171;
   --alarm-soft: #3a1515;
   --focus: #8ab8ff;
+  --chart-1: #5592ec;
+  --chart-2: #3b5cc9;
+  --chart-grid: #26314a;
+  --chart-ref: #b6bfce;
   color-scheme: dark;
 }

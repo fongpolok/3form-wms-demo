@@ -1,4 +1,4 @@
-# 3Form WMS: start, test and troubleshoot (v3.1.0)
+# 3Form WMS: start, test and troubleshoot (v3.2.0)
 
 ## 1. First-time setup (once per computer)
 
@@ -9,6 +9,8 @@
 | Create your secrets file | `cp .env.example .env`, then change every `change-me` value |
 | Start the databases + create tables | `./scripts/dev_start.sh` |
 | Create the demo accounts and 2 sample orders | `conda run -n 3form_WMS python manage.py seed_demo` |
+| Upgrading from v3.1.0? Run once | `conda run -n 3form_WMS python manage.py migrate && conda run -n 3form_WMS python manage.py upgrade_v32` |
+| 3 months of demo history (for pitching) | `conda run -n 3form_WMS python manage.py seed_history` (remove: `--clear`) |
 
 ## 2. Every day
 
@@ -43,6 +45,17 @@ To register a different tablet from your own computer, press **Register a device
 3. To test without hardware, run `python tools/scanner_simulator.py --port 55256`, then type a barcode and press Enter.
 4. A new brand needs a new file in `site_gateway/drivers/` plus one line in `drivers/__init__.py`.
 
+## 4b. Cameras (TCP/IP)
+
+| Camera | What it sends | Settings (`scanner_gateway.devices`) |
+|---|---|---|
+| Vision (Cognex In-Sight IS8500) | `PASS` or `FAIL,<reason>` + CR LF per inspection | `kind: vision`, `driver: cognex_tcp`, camera as TCP server on port 3000, `workstation: WS-06` |
+| Rack camera | `SLOT,<bin>,EMPTY` / `OCCUPIED` / `<goods code>` | `kind: rack`, `driver: rack_tcp`, port 3100 |
+
+- To test without hardware, run `python tools/camera_simulator.py --mode vision --port 3000`. Add `--every 5 --fail-rate 0.1` for automatic results. For the rack camera, use `--mode rack --port 3100`.
+- In Cognex In-Sight Explorer, set up a TCP/IP output (the camera acts as server) that writes the line above after each inspection.
+- A camera FAIL becomes 1 piece of scrap ("Vision reject") on the batch running at that workstation. A rack mismatch raises an alert and never changes stock.
+
 ## 5. Backups and Excel
 
 | What | Command |
@@ -50,6 +63,7 @@ To register a different tablet from your own computer, press **Register a device
 | Backup both databases now | `./deploy/backup/backup.sh` (output: `backups/`, kept 30 days) |
 | Nightly Excel file | `conda run -n 3form_WMS python manage.py export_production` (output: `exports/`) |
 | Restore | see the bottom of `deploy/backup/backup.sh` |
+| Expiry alerts + re-check orders waiting for material | `conda run -n 3form_WMS python manage.py daily_checks` (scheduled 06:00) |
 
 **Scheduled every night on this Mac** (installed 2026-10-19 and tested):
 ```

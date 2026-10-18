@@ -6,7 +6,7 @@ import openpyxl
 import pytest
 
 from mes import services
-from site_gateway.drivers.honeywell_tcp import HoneywellTcpDriver
+from site_gateway.drivers.line_tcp import HoneywellTcpDriver
 from site_gateway.outbox.store import OfflineQueue
 
 API = "/api/v1"
@@ -22,7 +22,7 @@ def test_excel_has_all_sheets(people, clients):
     assert r.status_code == 200
     wb = openpyxl.load_workbook(io.BytesIO(r.content))
     assert wb.sheetnames == ["Work orders", "Step logs", "Scrap", "Downtime", "Measurements", "Stock movements",
-                             "Audit trail"]
+                             "Shipments", "Material use", "Audit trail"]
     assert wb["Scrap"].max_row == 2
     assert clients["worker"].get(f"{API}/reports/production.xlsx").status_code == 403
 

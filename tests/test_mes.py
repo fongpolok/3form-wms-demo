@@ -90,6 +90,7 @@ def test_worker_board_hides_scrap(people, clients):
     assert r.json() == {"recorded": True}
     board = clients["worker"].get(f"{API}/mes/workstations/WS-01/board").json()
     assert "scrap_qty" not in board["current"]
+    assert board["current"]["expected_good"] == board["current"]["qty_in"] - 3
     assert clients["worker"].get(f"{API}/mes/events").status_code == 403
 
 
@@ -125,6 +126,10 @@ def test_last_step_completes_batch_and_work_order(people):
     for n in range(1, 7):
         services.start_step(w, f"WS-{n:02d}", batch["batch_id"], uuid.uuid4().hex)
         services.finish_step(w, f"WS-{n:02d}", 10, uuid.uuid4().hex)
+    assert mongo.db().batches.find_one({"batch_id": batch["batch_id"]})["status"] == "awaiting_putaway"
+    from inventory.services import create_bin
+    create_bin(people["pic"], "FG-01", "FG")
+    services.put_away(w, "WS-06", "FG-01", uuid.uuid4().hex)
     assert mongo.db().batches.find_one({"batch_id": batch["batch_id"]})["status"] == "done"
     assert mongo.db().work_orders.find_one({"wo_id": wo["wo_id"]})["status"] == "done"
     prog = services.progress_overview(people["pic"].tenant_openid)

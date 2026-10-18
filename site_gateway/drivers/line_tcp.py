@@ -1,17 +1,16 @@
 """
-Honeywell scanner over TCP/IP (fixed-mount scanners, or handhelds behind an
-Ethernet adapter). The scanner sends each barcode as text followed by a
-terminator (default CR LF).
+Devices that send one text line per event over TCP/IP, ended by a terminator
+(default CR LF). Used for barcode scanners, vision cameras and rack cameras.
 
-mode: client -> the gateway connects to the scanner's IP:port (scanner is TCP server)
-mode: server -> the gateway listens on port; the scanner connects in (scanner is TCP client)
+mode: client -> the gateway connects to the device's IP:port (device is TCP server)
+mode: server -> the gateway listens on port; the device connects in (device is TCP client)
 """
 import asyncio
 
 from .base import ScannerDriver
 
 
-class HoneywellTcpDriver(ScannerDriver):
+class LineTcpDriver(ScannerDriver):
     RECONNECT_MAX_SECONDS = 30
 
     def _terminator(self):
@@ -76,3 +75,16 @@ class HoneywellTcpDriver(ScannerDriver):
             await self._run_server()
         else:
             await self._run_client()
+
+
+class HoneywellTcpDriver(LineTcpDriver):
+    """Honeywell scanners (fixed-mount, or handhelds behind an Ethernet adapter). Each line = one barcode."""
+
+
+class CognexTcpDriver(LineTcpDriver):
+    """Cognex In-Sight (e.g. IS8500) set up to send `PASS` or `FAIL,<reason>` per inspection.
+    The camera is a TCP server (default port 3000); the gateway connects as a client."""
+
+
+class RackCameraTcpDriver(LineTcpDriver):
+    """Rack camera sending `SLOT,<bin>,EMPTY|OCCUPIED|<goods code>` per checked slot."""

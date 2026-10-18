@@ -2,6 +2,7 @@
 label: { en: "Pharmaceutical", zh-hant: "製藥" }
 sign_off_required: true          # EM e-signature at batch end
 lot_tracking: true
+stock_rule: fefo            # fefo = earliest expiry first (FIFO when no expiry); fifo = oldest first
 steps:
   - { code: DISP, name: { en: "Dispensing", zh-hant: "配料" }, std_seconds_per_unit: 3.0, measurement: null }
   - { code: MIX, name: { en: "Granulation / mixing", zh-hant: "製粒 / 混合" }, std_seconds_per_unit: 2.5, measurement: null }

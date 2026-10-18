@@ -24,7 +24,7 @@ const show = (v) => (v == null ? '' : JSON.stringify(v))
       <thead><tr><th>{{ t('audit.when') }}</th><th>{{ t('audit.who') }}</th><th>{{ t('audit.what') }}</th><th>{{ t('audit.before') }}</th><th>{{ t('audit.after') }}</th><th>{{ t('common.reason') }}</th></tr></thead>
       <tbody>
         <tr v-for="a in data" :key="a.id">
-          <td>{{ new Date(a.ts).toLocaleString() }}</td><td>{{ a.actor_name }} <span class="muted">({{ a.actor_role }})</span></td>
+          <td>{{ $dt(a.ts) }}</td><td>{{ a.actor_name }} <span class="muted">({{ a.actor_role }})</span></td>
           <td><span class="mono">{{ a.action }}</span><br /><span class="muted mono">{{ a.entity_id }}</span></td>
           <td class="mono small">{{ show(a.before) }}</td><td class="mono small">{{ show(a.after) }}</td><td>{{ a.reason }}</td>
         </tr>

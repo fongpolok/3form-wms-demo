@@ -2,6 +2,7 @@
 label: { en: "Electronics assembly", zh-hant: "電子組裝" }
 sign_off_required: false          # EM e-signature at batch end
 lot_tracking: true
+stock_rule: fifo            # fefo = earliest expiry first (FIFO when no expiry); fifo = oldest first
 steps:
   - { code: SMT, name: { en: "SMT placement", zh-hant: "貼片" }, std_seconds_per_unit: 4.0, measurement: null }
   - { code: SOLDER, name: { en: "Soldering", zh-hant: "焊接" }, std_seconds_per_unit: 3.0, measurement: null }

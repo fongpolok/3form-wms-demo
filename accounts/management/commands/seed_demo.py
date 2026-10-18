@@ -87,4 +87,7 @@ class Command(BaseCommand):
                                                      "client": "Demo Clinic", "qty": 120, "batches": 1,
                                                      "due_date": (due - timedelta(days=5)).isoformat(),
                                                      "ship_mode": "direct"}, source="PIC")
+                db = mongo.db()
+                for coll in ("work_orders", "batches"):
+                    db[coll].update_many({"tenant_openid": openid}, {"$set": {"demo": True}})
                 self.stdout.write(self.style.SUCCESS("Created 2 sample work orders (1 Special / Urgent)."))

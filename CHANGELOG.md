@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-19 - Phase 2 MES + WMS link (signed off)
+
+### Added
+- **New inventory ledger** (`inventory` app): stock by item + lot + bin + expiry, an append-only movement log,
+  reservations, material requests, bin zones (raw material, finished goods, QA, hold, damage, general) and alerts.
+- **Stock-out rule per industry:** FEFO (earliest expiry first; FIFO when there's no expiry) or FIFO.
+  **Expired lots are never picked** (`inventory.block_expired`).
+- **Products & Recipes** (PIC and EM, audited): materials per piece, shelf life, and the product's own step list.
+- **Material gate:** an order received from the ERP or typed by the PIC reserves its materials, or the **whole order
+  waits for material**, with a material request and a shortage alert. It is released automatically when stock arrives,
+  most urgent order first.
+- Batches consume reserved materials at the first step (by stock rule). The materials and lots used per batch are
+  recorded for recalls.
+- **QC → warehouse:** stock orders go to "put away". The worker scans a bin label, or presses the suggested
+  empty finished-goods bin, and the stock lot = batch ID with expiry = production date + shelf life.
+  Direct orders create a shipment automatically.
+- New warehouse screens: **Stock** (on hand / reserved / available, lots, expiry flags, material requests),
+  **Inbound**, **Outbound** (pick preview), **Bins**, **Cycle Count** (variance → PIC approves).
+- **Cameras:** Cognex In-Sight driver (`cognex_tcp`, camera sends `PASS` / `FAIL,<reason>`). A FAIL is logged as
+  scrap "Vision reject" on the running batch. Rack camera driver (`rack_tcp`, `SLOT,<bin>,EMPTY|OCCUPIED|<code>`):
+  a mismatch with the ledger raises an alert, and stock is never changed automatically.
+  `tools/camera_simulator.py` added; the simulators now accept reconnects.
+- **Lean / Six Sigma page:** OEE (A × P × Q) per workstation, rolled yield, DPMO and sigma level, scrap Pareto
+  (vital few highlighted), SPC I-MR chart with Cp/Cpk and rule breaks, and first-pass yield per step. Every chart has
+  a table view. Chart colours were checked with the palette validator.
+- **SPC alarm** when a new reading breaks a rule (beyond 3σ, or 8 in a row on one side).
+- **Alerts bell** and Alerts page. `manage.py daily_checks` (06:00) raises expiry alerts and re-checks waiting orders.
+- **Industry drop-down** (PIC): changes steps, scrap reasons and the stock rule for new orders.
+- **Demo history:** `manage.py seed_history` (90 days, ~164 orders) / `--clear`. Every record is tagged as demo.
+- `manage.py upgrade_v32`: copies legacy stock into the ledger, sets bin zones and updates Phase 1 batches.
+- Excel export adds the **Shipments** and **Material use** sheets. Stock movements now come from the new ledger.
+- 41 automated tests (18 new).
+
+### Changed
+- Legacy GreaterWMS stock endpoints (`/asn/`, `/dn/`, `/stock/`, `/cyclecount/`) are **read-only** (writes return 410).
+- Workstations are matched to batches by step code, so a product can skip steps.
+- Fill-weight tolerance is ±2 % (was ±5 %). The SPC chart shows the latest 150 readings.
+- The worker's Finish keypad suggests pieces received minus pieces already scrapped.
+- Dates follow the app language, not the browser's.
+- Automated tests write their logs to `logs/test/`.
+
+### Not included (as agreed)
+- Camera **video**: the IS8500's firmware is older than 5.6.0 (no Web HMI), and video isn't needed for now.
+
 ## [3.1.0] - 2026-10-19 - Phase 1 Foundation (signed off)
 
 ### Added

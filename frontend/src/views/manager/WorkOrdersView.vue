@@ -66,7 +66,11 @@ async function create() {
           <td class="mono">{{ w.wo_id }}
             <span v-if="w.special_urgent" class="pill pill-alarm"><Icon name="alert" :size="12" /> {{ t('progress.urgent') }}</span></td>
           <td>{{ w.product_name || w.product_code }}</td><td>{{ w.client }}</td><td>{{ w.qty }}</td><td>{{ w.due_date }}</td>
-          <td>{{ w.ship_mode === 'stock' ? t('wo.stock') : t('wo.direct') }}</td><td>{{ w.source }}</td><td>{{ w.status }}</td>
+          <td>{{ w.ship_mode === 'stock' ? t('wo.stock') : t('wo.direct') }}</td><td>{{ w.source }}</td>
+          <td><span v-if="w.status === 'waiting_material'" class="pill pill-warn" :title="w.shortages.map((s) => `${s.goods_code} -${s.short}`).join(', ')">
+            <Icon name="alert" :size="12" /> {{ t('wo.waitingMaterial') }}</span>
+            <span v-else>{{ t(`wo.status.${w.status}`) }}</span>
+            <div v-if="w.shortages?.length" class="muted short">{{ w.shortages.map((s) => `${s.goods_code} −${s.short}`).join(', ') }}</div></td>
         </tr>
       </tbody>
     </table>
@@ -80,4 +84,5 @@ async function create() {
 fieldset { border: 0; padding: 0; margin: 0; }
 .radio { display: flex; gap: 8px; align-items: center; min-height: 36px; }
 .radio input { width: auto; min-height: auto; }
+.short { font-size: 0.8125rem; }
 </style>

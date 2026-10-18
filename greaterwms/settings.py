@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'mes.apps.MesConfig',
     'reports.apps.ReportsConfig',
+    'inventory.apps.InventoryConfig',
     'rest_framework',
     'django_filters',
     'corsheaders',
@@ -78,6 +79,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.LegacyStockReadOnlyMiddleware',
 ]
 
 ROOT_URLCONF = 'greaterwms.urls'
@@ -166,7 +168,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media').replace('\\', '/')
 SPECTACULAR_SETTINGS = {
     'TITLE': '3Form WMS / MES / APS',
     'DESCRIPTION': '3Form WMS API (agent-ready). Auth: Authorization: Bearer <token>',
-    'VERSION': '3.1.0',
+    'VERSION': '3.2.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
     'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead

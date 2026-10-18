@@ -25,29 +25,46 @@ def main():
     srv.bind(("127.0.0.1", args.port))
     srv.listen(1)
     print(f"Simulated scanner listening on 127.0.0.1:{args.port}. Waiting for the gateway...", flush=True)
-    conn, addr = srv.accept()
-    print(f"Gateway connected from {addr}.", flush=True)
+    state = {"conn": None}
+    lock = threading.Lock()
+    ready = threading.Event()
+
+    def accept_loop():   # like a real scanner: the gateway may disconnect and reconnect at any time
+        while True:
+            c, a = srv.accept()
+            with lock:
+                state["conn"] = c
+            print(f"Gateway connected from {a}.", flush=True)
+            ready.set()
+
+    threading.Thread(target=accept_loop, daemon=True).start()
+
+    def send(code):
+        with lock:
+            c = state["conn"]
+            if c is None:
+                return False
+            try:
+                c.sendall(code.encode() + b"\r\n")
+                return True
+            except OSError:
+                state["conn"] = None
+                return False
 
     if args.send:
-        conn.sendall(args.send.encode() + b"\r\n")
+        ready.wait()
+        send(args.send)
         print(f"Sent {args.send}", flush=True)
         time.sleep(0.5)
-        conn.close()
         return
 
-    def drain():  # keep the socket healthy; scanners ignore input
-        try:
-            while conn.recv(1024):
-                pass
-        except OSError:
-            pass
-    threading.Thread(target=drain, daemon=True).start()
     print("Type a barcode and press Enter (Ctrl+C to quit):", flush=True)
     for line in sys.stdin:
         code = line.strip()
         if code:
-            conn.sendall(code.encode() + b"\r\n")
-            print(f"  beep -> {code}", flush=True)
+            print(f"  beep -> {code}" if send(code) else f"  (no gateway connected; dropped {code})", flush=True)
+    while True:          # stdin closed: keep serving reconnects
+        time.sleep(1)
 
 
 if __name__ == "__main__":

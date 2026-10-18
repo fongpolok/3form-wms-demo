@@ -18,4 +18,8 @@ urlpatterns = [
     path("mes/events/<str:event_id>", views.EventEditView.as_view()),
     path("gateway/scans", views.GatewayScanView.as_view()),
     path("gateway/heartbeat", views.GatewayHeartbeatView.as_view()),
+    path("gateway/vision", views.GatewayVisionView.as_view()),
+    path("gateway/rack", views.GatewayRackView.as_view()),
+    path("lean/summary", views.LeanView.as_view()),
+    path("lean/spc", views.SpcView.as_view()),
 ]

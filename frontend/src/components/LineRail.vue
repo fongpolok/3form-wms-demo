@@ -14,8 +14,9 @@ const stations = computed(() => {
   const batches = props.wo.batches || []
   const n = batches.length || 1
   const steps = (props.wo.routing || []).map((s) => {
-    const passed = batches.filter((b) => b.status === 'done' || b.current_step_no > s.step_no).length
-    const here = batches.filter((b) => b.status !== 'done' && b.current_step_no === s.step_no)
+    const finished = (b) => b.status === 'done' || b.status === 'awaiting_putaway'
+    const passed = batches.filter((b) => finished(b) || b.current_step_no > s.step_no).length
+    const here = batches.filter((b) => !finished(b) && b.current_step_no === s.step_no)
     return {
       key: s.code, label: pick(s.name), passed, total: n,
       running: here.filter((b) => b.status === 'running').length,

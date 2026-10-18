@@ -55,9 +55,29 @@ def _load_industry(code):
         return yaml.safe_load(fh)
 
 
+_industry_resolver = None
+
+
+def set_industry_resolver(fn):
+    """Let another app supply the current industry (e.g. a PIC choice saved in the DB)."""
+    global _industry_resolver
+    _industry_resolver = fn
+
+
+def current_industry_code():
+    if _industry_resolver is not None:
+        try:
+            code = _industry_resolver()
+            if code:
+                return code
+        except Exception as exc:  # noqa: BLE001 - fall back to the YAML default
+            logger.warning("Industry resolver failed, using settings.yaml: %s", exc)
+    return get("site.industry", "general")
+
+
 def industry(code=None):
-    """Industry preset (steps, scrap reasons, sign-off rule). Defaults to site.industry."""
-    return copy.deepcopy(_load_industry(code or get("site.industry", "general")))
+    """Industry preset (steps, scrap reasons, sign-off rule, stock rule). Defaults to the current site industry."""
+    return copy.deepcopy(_load_industry(code or current_industry_code()))
 
 
 def reload():

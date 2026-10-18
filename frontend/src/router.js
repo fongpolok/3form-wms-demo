@@ -7,7 +7,14 @@ const RANK = { WORKER: 1, EM: 2, PIC: 3 }
 // Same pages for EM (/manager) and PIC (/pic); PIC-only pages carry min: 'PIC'.
 const pages = [
   { path: 'progress', component: () => import('./views/manager/ProgressView.vue'), min: 'EM' },
+  { path: 'lean', component: () => import('./views/manager/LeanView.vue'), min: 'EM' },
   { path: 'workstations', component: () => import('./views/manager/WorkstationsView.vue'), min: 'EM' },
+  { path: 'products', component: () => import('./views/manager/ProductsView.vue'), min: 'EM' },
+  { path: 'alerts', component: () => import('./views/manager/AlertsView.vue'), min: 'EM' },
+  { path: 'inbound', component: () => import('./views/warehouse/InboundView.vue'), min: 'EM' },
+  { path: 'outbound', component: () => import('./views/warehouse/OutboundView.vue'), min: 'EM' },
+  { path: 'bins', component: () => import('./views/warehouse/BinsView.vue'), min: 'EM' },
+  { path: 'count', component: () => import('./views/warehouse/CountView.vue'), min: 'EM' },
   { path: 'work-orders', component: () => import('./views/manager/WorkOrdersView.vue'), min: 'EM' },
   { path: 'scrap', component: () => import('./views/manager/ScrapView.vue'), min: 'EM' },
   { path: 'stock', component: () => import('./views/manager/StockView.vue'), min: 'EM' },

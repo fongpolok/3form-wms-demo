@@ -19,7 +19,8 @@ COLLECTIONS = {
     "work_orders": [([("wo_id", ASCENDING)], {"unique": True}),
                     ([("status", ASCENDING), ("due_date", ASCENDING)], {})],
     "batches": [([("batch_id", ASCENDING)], {"unique": True}),
-                ([("wo_id", ASCENDING)], {})],
+                ([("wo_id", ASCENDING)], {}),
+                ([("current_step_code", ASCENDING), ("status", ASCENDING)], {})],
     "wip": [([("wip_id", ASCENDING)], {"unique": True}),
             ([("batch_id", ASCENDING), ("step_no", ASCENDING)], {}),
             ([("workstation", ASCENDING), ("status", ASCENDING)], {})],
@@ -28,10 +29,15 @@ COLLECTIONS = {
     "step_events": [([("event_id", ASCENDING)], {"unique": True}),
                     ([("wip_id", ASCENDING), ("ts", ASCENDING)], {}),
                     ([("type", ASCENDING), ("ts", DESCENDING)], {}),
-                    ([("workstation", ASCENDING), ("ts", DESCENDING)], {})],
+                    ([("workstation", ASCENDING), ("ts", DESCENDING)], {}),
+                    ([("type", ASCENDING), ("step_code", ASCENDING), ("ts", DESCENDING)], {})],
     "scans": [([("event_id", ASCENDING)], {"unique": True}),
               ([("workstation", ASCENDING), ("ts", DESCENDING)], {})],
     "device_health": [([("device_id", ASCENDING)], {"unique": True})],
+    "vision_results": [([("event_id", ASCENDING)], {"unique": True}),
+                       ([("workstation", ASCENDING), ("ts", DESCENDING)], {})],
+    "rack_reports": [([("event_id", ASCENDING)], {"unique": True}),
+                     ([("bin_name", ASCENDING), ("ts", DESCENDING)], {})],
 }
 
 

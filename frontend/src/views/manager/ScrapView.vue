@@ -1,4 +1,5 @@
 <script setup>
+import { fmtDateTime } from '../../i18n/index.js'
 // Trace-back for EM / PIC. Only the PIC may correct records, always with a reason.
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -39,7 +40,7 @@ async function saveEdit() {
     find()
   } catch (err) { error.value = err.message }
 }
-const fmt = (ts) => (ts ? new Date(ts).toLocaleString() : '')
+const fmt = (ts) => fmtDateTime(ts)
 </script>
 
 <template>

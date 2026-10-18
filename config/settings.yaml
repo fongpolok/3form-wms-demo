@@ -38,7 +38,8 @@ network_alarm:
   worker_poll_interval_ms: 1000        # worker page checks for new scans
 
 scanner_gateway:
-  # Each scanner's IP is mapped to one workstation. Add/replace hardware here.
+  # Each device's IP is mapped to one workstation (rack cameras: none). Add/replace hardware here.
+  # kind: scanner (default) | vision | rack
   forward_url: "http://127.0.0.1:8008/api/v1/gateway"
   offline_queue_file: "logs/gateway_queue.sqlite3"
   retry_seconds: 5
@@ -57,9 +58,26 @@ scanner_gateway:
       port: 55257
       terminator: "\r\n"
       workstation: "WS-02"
+    # Vision camera at the QC bench (Cognex In-Sight IS8500 set to send PASS / FAIL,<reason>)
+    - id: "CAM-QC-01"
+      kind: "vision"
+      driver: "cognex_tcp"
+      mode: "client"
+      host: "127.0.0.1"                # camera IP (127.0.0.1 = tools/camera_simulator.py)
+      port: 3000
+      terminator: "\r\n"
+      workstation: "WS-06"
+    # Warehouse rack camera: SLOT,<bin>,EMPTY|OCCUPIED|<goods code>
+    - id: "CAM-RACK-01"
+      kind: "rack"
+      driver: "rack_tcp"
+      mode: "client"
+      host: "127.0.0.1"
+      port: 3100
+      terminator: "\r\n"
 
 mes:
-  measurement_tolerance_pct: 5          # default +/- band when a step has a target value
+  measurement_tolerance_pct: 2          # +/- band around a step's target (fill weight 50 g -> 49-51 g)
   allow_negative_good_qty: false
 
 excel_export:
@@ -87,3 +105,14 @@ demo:
 api:
   throttle_user: "1200/min"      # per logged-in person
   throttle_anon: "3000/min"      # per IP: health checks, gateway, login
+
+lean:
+  opportunities_per_unit: 1      # defect opportunities per piece (for DPMO / sigma)
+
+spc:
+  points: 150                    # readings shown on the SPC chart
+  min_points: 20                 # readings needed before control limits are calculated
+
+inventory:
+  block_expired: true            # expired lots are never picked for production or shipping
+  expiry_warn_days: 30           # alert this many days before a lot expires

@@ -2,6 +2,7 @@
 label: { en: "Chemicals", zh-hant: "化工" }
 sign_off_required: false          # EM e-signature at batch end
 lot_tracking: true
+stock_rule: fefo            # fefo = earliest expiry first (FIFO when no expiry); fifo = oldest first
 steps:
   - { code: DISP, name: { en: "Dispensing", zh-hant: "配料" }, std_seconds_per_unit: 3.0, measurement: null }
   - { code: MIX, name: { en: "Reaction / mixing", zh-hant: "反應 / 混合" }, std_seconds_per_unit: 4.0, measurement: null }

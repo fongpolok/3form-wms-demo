@@ -2,6 +2,7 @@
 label: { en: "General", zh-hant: "一般製造" }
 sign_off_required: false          # EM e-signature at batch end
 lot_tracking: true
+stock_rule: fifo            # fefo = earliest expiry first (FIFO when no expiry); fifo = oldest first
 steps:
   - { code: PREP, name: { en: "Preparation", zh-hant: "準備" }, std_seconds_per_unit: 2.0, measurement: null }
   - { code: PROC, name: { en: "Processing", zh-hant: "加工" }, std_seconds_per_unit: 3.0, measurement: null }

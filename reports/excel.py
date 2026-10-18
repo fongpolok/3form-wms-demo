@@ -3,7 +3,7 @@ Production data workbook: one sheet per data set, filtered by date range.
 Used by the "Export Excel" button and the nightly export command.
 
 Sheets: Work orders, Step logs, Scrap, Downtime, Measurements,
-        Stock movements, Audit trail.
+        Stock movements, Shipments, Material use, Audit trail.
 """
 import io
 import logging
@@ -16,7 +16,7 @@ from openpyxl.utils import get_column_letter
 
 from accounts.models import AuditLog
 from core import config, mongo
-from cyclecount.models import QTYRecorder
+from inventory.models import Movement, Shipment
 
 logger = logging.getLogger("app")
 HEADER_FILL = PatternFill("solid", fgColor="0050CC")   # 3Form blue
@@ -111,10 +111,24 @@ def build_workbook(tenant_openid, date_from, date_to):
          for e in _events(db, tenant_openid, start, end, "measure")))
 
     counts["Stock movements"] = _sheet(wb, "Stock movements",
-        ["Time", "Mode", "Bin", "Goods code", "Goods", "Qty", "By"],
-        ([_local(r.create_time), r.mode_code, r.bin_name, r.goods_code, r.goods_desc, r.goods_qty, r.creater]
-         for r in QTYRecorder.objects.filter(openid=tenant_openid, create_time__gte=_local(start),
-                                             create_time__lte=_local(end)).order_by("create_time").iterator()))
+        ["Time", "Type", "Goods code", "Lot", "From bin", "To bin", "Qty", "Reference", "By", "Note"],
+        ([_local(m.ts), m.kind, m.goods_code, m.lot_number, m.bin_from, m.bin_to, m.qty, m.ref, m.actor, m.note]
+         for m in Movement.objects.filter(tenant_openid=tenant_openid, ts__gte=_local(start), ts__lte=_local(end))
+         .order_by("ts").iterator()))
+
+    counts["Shipments"] = _sheet(wb, "Shipments",
+        ["Shipment", "Time", "Client", "From", "Reference", "Goods code", "Lot", "Qty"],
+        ([s.shipment_id, _local(s.shipped_at), s.client, s.source, s.ref, l["goods_code"], l.get("lot_number"), l["qty"]]
+         for s in Shipment.objects.filter(tenant_openid=tenant_openid, shipped_at__gte=_local(start),
+                                          shipped_at__lte=_local(end)).order_by("shipped_at")
+         for l in s.lines))
+
+    counts["Material use"] = _sheet(wb, "Material use",
+        ["Batch ID", "WO ID", "Material", "Material lot", "From bin", "Qty", "Expiry"],
+        ([b["batch_id"], b["wo_id"], u["goods_code"], u["lot_number"], u["bin_name"], u["qty"], u.get("expiry_date")]
+         for b in db.batches.find({"tenant_openid": tenant_openid, "created_at": {"$gte": start, "$lte": end},
+                                   "materials_used": {"$exists": True}}, {"_id": 0}).sort("created_at", 1)
+         for u in b.get("materials_used") or []))
 
     counts["Audit trail"] = _sheet(wb, "Audit trail",
         ["Time", "Who", "Role", "Action", "Entity", "Entity ID", "Before", "After", "Reason", "IP"],

@@ -61,7 +61,7 @@ async function toggle(d) {
       <tbody>
         <tr v-for="d in data" :key="d.id">
           <td>{{ d.name }}</td><td>{{ d.workstation }}</td><td class="mono">{{ d.token_hint }}…</td>
-          <td>{{ d.last_seen ? new Date(d.last_seen).toLocaleString() : '–' }}</td>
+          <td>{{ d.last_seen ? $dt(d.last_seen) : '–' }}</td>
           <td><span :class="['pill', d.is_active ? 'pill-ok' : 'pill-alarm']"><Icon :name="d.is_active ? 'check' : 'x'" :size="12" /> {{ d.is_active ? t('accounts.active') : t('devices.revoke') }}</span></td>
           <td><button class="btn" @click="toggle(d)">{{ d.is_active ? t('devices.revoke') : t('devices.activate') }}</button></td>
         </tr>

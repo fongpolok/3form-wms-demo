@@ -3,6 +3,7 @@
 label: { en: "Cosmetics", zh-hant: "化妝品" }
 sign_off_required: false          # EM e-signature at batch end
 lot_tracking: true
+stock_rule: fefo            # fefo = earliest expiry first (FIFO when no expiry); fifo = oldest first
 steps:
   - { code: MIX,   name: { en: "Mixing",     zh-hant: "混合" },  std_seconds_per_unit: 2.0, measurement: null }
   - { code: FILL,  name: { en: "Filling",    zh-hant: "灌裝" },  std_seconds_per_unit: 1.5, measurement: { name: "Fill weight", unit: "g", target: 50.0 } }

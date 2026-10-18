@@ -55,3 +55,28 @@ def clients(people):
     _, em_t = account_services.password_login("em", "EmPassword#1")
     _, _, w_t = account_services.worker_login("1001", people["device_token"])
     return {"pic": _client_for(pic_t), "em": _client_for(em_t), "worker": _client_for(w_t), "anon": APIClient()}
+
+
+@pytest.fixture
+def factory(people):
+    """Goods, bins, a product with a recipe, and raw-material stock."""
+    from datetime import date, timedelta
+
+    from goods.models import ListModel as Goods
+    from inventory import services as inv
+
+    pic = people["pic"]
+    for code, desc in [("HC-50", "Hand cream 50 ml"), ("CREAM", "Cream base (g)"), ("JAR", "Jar 50 ml")]:
+        Goods.objects.create(goods_code=code, goods_desc=desc, goods_supplier="", goods_unit="Piece",
+                             goods_class="", goods_brand="", goods_color="", goods_shape="", goods_specs="",
+                             goods_origin="", creater="test", bar_code=code, openid=TENANT)
+    for name, zone in [("RM-01", "RAW"), ("RM-02", "RAW"), ("FG-01", "FG"), ("FG-02", "FG"), ("QA-01", "QA")]:
+        inv.create_bin(pic, name, zone)
+    inv.save_product(pic, {"goods_code": "HC-50", "shelf_life_days": 365,
+                           "recipe": [{"material_code": "CREAM", "qty_per_piece": 50},
+                                      {"material_code": "JAR", "qty_per_piece": 1}]})
+    today = date.today()
+    inv.receive(pic, "CREAM", 8000, "RM-01", "CR-LATE", today + timedelta(days=200))
+    inv.receive(pic, "CREAM", 2000, "RM-02", "CR-EARLY", today + timedelta(days=30))
+    inv.receive(pic, "JAR", 100, "RM-01", "JAR-1")
+    return inv
