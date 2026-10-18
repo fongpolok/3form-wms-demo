@@ -6,9 +6,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 set -a; source .env; set +a
+PY=${PY:-$(command -v python3)}   # any Python with PyYAML; cron passes the 3form_WMS one
 
-OUT_DIR=$(python3 -c "import yaml;print(yaml.safe_load(open('config/settings.yaml'))['backup']['output_dir'])")
-KEEP_DAYS=$(python3 -c "import yaml;print(yaml.safe_load(open('config/settings.yaml'))['backup']['keep_days'])")
+OUT_DIR=$("$PY" -c "import yaml;print(yaml.safe_load(open('config/settings.yaml'))['backup']['output_dir'])")
+KEEP_DAYS=$("$PY" -c "import yaml;print(yaml.safe_load(open('config/settings.yaml'))['backup']['keep_days'])")
 PG_CONTAINER=${PG_CONTAINER:-threeform-postgres}
 MONGO_CONTAINER=${MONGO_CONTAINER:-threeform-mongo}
 STAMP=$(date +%Y%m%d-%H%M%S)

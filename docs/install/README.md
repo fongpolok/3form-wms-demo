@@ -51,11 +51,16 @@ To register a different tablet from your own computer, press **Register a device
 | Nightly Excel file | `conda run -n 3form_WMS python manage.py export_production` (output: `exports/`) |
 | Restore | see the bottom of `deploy/backup/backup.sh` |
 
-To run both every night on this Mac, run `crontab -e` and add:
+**Scheduled every night on this Mac** (installed 2026-10-19 and tested):
 ```
-0 2 * * * cd "/path/to/WMS_Demo" && ./deploy/backup/backup.sh
-5 2 * * * cd "/path/to/WMS_Demo" && conda run -n 3form_WMS python manage.py export_production
+PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin
+0 2 * * * cd "<project>" && PY=<conda env>/bin/python /bin/bash ./deploy/backup/backup.sh >> logs/cron.log 2>&1
+5 2 * * * cd "<project>" && <conda env>/bin/python manage.py export_production >> logs/cron.log 2>&1
 ```
+Two macOS details that matter:
+- `cron` needs **Full Disk Access** (System Settings → Privacy & Security), because the project is in Desktop.
+- Start the script **through `/bin/bash`**. When the script is run directly, macOS blocks Python inside the Desktop folder.
+- To see or edit the schedule, use `crontab -l` / `crontab -e`. The output goes to `logs/cron.log`.
 
 ## 6. Troubleshooting
 
