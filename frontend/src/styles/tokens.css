@@ -1,0 +1,92 @@
+/*
+ * 3Form design tokens. Contrast ratios are against --surface (light / dark).
+ *   --ink        #111827 on #FFFFFF = 17.7:1   |  #F3F4F6 on #121A2B = 15.8:1
+ *   --ink-2      #4B5563 on #FFFFFF =  7.6:1   |  #B6BFCE on #121A2B =  9.4:1
+ *   --accent     #0050CC on #FFFFFF =  7.0:1   |  #6FA8F5 on #121A2B =  7.1:1
+ *   --ok         #047857 on #FFFFFF =  5.5:1   |  #34D399 on #121A2B =  9.0:1
+ *   --warn       #92400E on #FFFFFF =  7.1:1   |  #FBBF24 on #121A2B = 10.4:1
+ *   --alarm      #B91C1C on #FFFFFF =  6.5:1   |  #F87171 on #121A2B =  6.3:1
+ *   Status text on its own soft background: lowest is ok-on-ok-soft 4.9:1.
+ * Status colour is never used alone: every status also has a word and an icon.
+ */
+:root {
+  --bg: #f4f7fc;
+  --surface: #ffffff;
+  --surface-2: #f8faff;
+  --ink: #111827;
+  --ink-2: #4b5563;
+  --line: #e5e7eb;
+  --line-strong: #c7cdd6;
+  --accent: #0050cc;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6effc;
+  --navy: #001a4a;
+  --ok: #047857;
+  --ok-soft: #e7f6f0;
+  --warn: #92400e;
+  --warn-soft: #fef3e2;
+  --alarm: #b91c1c;
+  --alarm-soft: #fdecec;
+  --focus: #0050cc;
+
+  --font-body: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  --font-display: 'Source Serif 4', 'Noto Serif TC', Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-sm: 0.9375rem;   /* 15px: secondary only */
+  --text: 1.0625rem;      /* 17px: body default (Apple default) */
+  --text-lg: 1.25rem;     /* 20px: worker body */
+  --text-xl: 1.625rem;
+  --text-2xl: 2.25rem;
+
+  --radius: 10px;
+  --radius-lg: 16px;
+  --gap: 16px;
+  --tap: 44px;            /* desktop/tablet control minimum */
+  --tap-worker: 88px;     /* gloves on a factory floor */
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0b1220;
+    --surface: #121a2b;
+    --surface-2: #17213a;
+    --ink: #f3f4f6;
+    --ink-2: #b6bfce;
+    --line: #26314a;
+    --line-strong: #3a4766;
+    --accent: #6fa8f5;
+    --accent-ink: #0b1220;
+    --accent-soft: #1b2b4d;
+    --ok: #34d399;
+    --ok-soft: #10302a;
+    --warn: #fbbf24;
+    --warn-soft: #33260c;
+    --alarm: #f87171;
+    --alarm-soft: #3a1515;
+    --focus: #8ab8ff;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0b1220;
+  --surface: #121a2b;
+  --surface-2: #17213a;
+  --ink: #f3f4f6;
+  --ink-2: #b6bfce;
+  --line: #26314a;
+  --line-strong: #3a4766;
+  --accent: #6fa8f5;
+  --accent-ink: #0b1220;
+  --accent-soft: #1b2b4d;
+  --ok: #34d399;
+  --ok-soft: #10302a;
+  --warn: #fbbf24;
+  --warn-soft: #33260c;
+  --alarm: #f87171;
+  --alarm-soft: #3a1515;
+  --focus: #8ab8ff;
+  color-scheme: dark;
+}

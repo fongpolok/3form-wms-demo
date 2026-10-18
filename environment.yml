@@ -1,0 +1,11 @@
+# Conda environment for 3Form WMS / MES / APS
+# Create:  conda env create -f environment.yml
+# Update:  conda env update -f environment.yml --prune
+name: 3form_WMS
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - -r requirements.txt

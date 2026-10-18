@@ -64,4 +64,5 @@ if not supplier_en_file:
     df = supplier_en.set_index("Supplier Name")
     df.to_excel(supplier_en_path)
 
-print('Welcome To GreaterWMS')
+import logging
+logging.getLogger('app').debug('3Form WMS package initialised')

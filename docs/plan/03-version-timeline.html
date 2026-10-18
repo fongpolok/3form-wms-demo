@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3Form WMS · Version timeline</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600&family=Noto+Serif+TC:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #fafaf7;
+      --color-ink:    #1a1a1a;
+      --color-muted:  #6b7280;
+      --color-accent: #0050cc;
+      --font-sans:  'Inter', 'Noto Sans TC', system-ui, sans-serif;
+      --font-serif: 'Source Serif 4', 'Noto Serif TC', serif;
+      --font-mono:  ui-monospace, 'SF Mono', Menlo, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+           min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+               text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
+         letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1000px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Timeline · Version track record</p>
+    <h1>From GreaterWMS fork to 3Form v3.5</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1000 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="version-timeline-title version-timeline-desc">
+        <title id="version-timeline-title">From GreaterWMS fork to 3Form v3.5</title>
+        <desc id="version-timeline-desc">Release order from the v3.0.0 baseline through five phase releases, each signed off by the user, ending with the v3.5.0 git push.</desc>
+
+        <rect width="100%" height="100%" fill="#fafaf7"/>
+
+        <!-- Axis note -->
+        <text x="40" y="28" fill="#6b7280" font-size="8" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.18em">RELEASE ORDER · NOT A TIME SCALE · DATE STAMPED AT EACH SIGN-OFF</text>
+
+        <!-- Baseline -->
+        <line x1="40" y1="168" x2="960" y2="168" stroke="#1a1a1a" stroke-width="1"/>
+
+        <!-- Drops (hairlines from dot to label) -->
+        <line x1="100" y1="164" x2="100" y2="124" stroke="#d1d5db" stroke-width="1"/>
+        <line x1="260" y1="172" x2="260" y2="212" stroke="#d1d5db" stroke-width="1"/>
+        <line x1="420" y1="164" x2="420" y2="124" stroke="#d1d5db" stroke-width="1"/>
+        <line x1="580" y1="172" x2="580" y2="212" stroke="#d1d5db" stroke-width="1"/>
+        <line x1="740" y1="164" x2="740" y2="124" stroke="#d1d5db" stroke-width="1"/>
+        <line x1="900" y1="174" x2="900" y2="212" stroke="#0050cc" stroke-width="1"/>
+
+        <!-- Events -->
+        <circle cx="100" cy="168" r="4" fill="#1a1a1a"/>
+        <circle cx="260" cy="168" r="4" fill="#1a1a1a"/>
+        <circle cx="420" cy="168" r="4" fill="#1a1a1a"/>
+        <circle cx="580" cy="168" r="4" fill="#1a1a1a"/>
+        <circle cx="740" cy="168" r="4" fill="#1a1a1a"/>
+        <circle cx="900" cy="168" r="6" fill="#0050cc"/>
+
+        <!-- Labels above -->
+        <text x="100" y="72" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.0.0 · 2026-10-19</text>
+        <text x="100" y="92" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">Baseline</text>
+        <text x="100" y="110" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">fork + 3Form rebrand</text>
+
+        <text x="420" y="72" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.2.0 · Phase 2</text>
+        <text x="420" y="92" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">MES + WMS link</text>
+        <text x="420" y="110" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">QC→FIFO · cameras · OEE</text>
+
+        <text x="740" y="72" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.4.0 · Phase 4</text>
+        <text x="740" y="92" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">Agent + AI search</text>
+        <text x="740" y="110" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">DeepSeek · bge-m3 · hybrid</text>
+
+        <!-- Labels below -->
+        <text x="260" y="232" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.1.0 · 2026-10-19</text>
+        <text x="260" y="252" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">Foundation</text>
+        <text x="260" y="270" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">roles · scan · Mongo · Excel</text>
+        <text x="260" y="288" fill="#047857" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">signed off</text>
+
+        <text x="580" y="232" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.3.0 · Phase 3</text>
+        <text x="580" y="252" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">APS planner</text>
+        <text x="580" y="270" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">sort · fit · urgent re-plan</text>
+
+        <text x="900" y="232" fill="#0050cc" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.5.0 · Phase 5</text>
+        <text x="900" y="252" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">ERP + release</text>
+        <text x="900" y="270" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">sign-off → git push</text>
+
+        <!-- Footer note -->
+        <line x1="40" y1="300" x2="960" y2="300" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+        <text x="40" y="320" fill="#6b7280" font-size="8.5" font-family="'Inter', sans-serif">Each dot = one CHANGELOG entry + one tagged version. Edward checks each phase before the next starts. One git push at the end.</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

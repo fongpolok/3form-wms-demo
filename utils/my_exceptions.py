@@ -7,10 +7,11 @@ def custom_exception_handler(exc, context):
     # to get the standard error response.
     response = exception_handler(exc, context)
 
-    # Now add the HTTP status code to the response.
+    # Now add the HTTP status code to the response body AND keep it on the
+    # response itself (the old GreaterWMS UI expected 200 for every error,
+    # which hid refusals from clients and the AI agent).
     if response is not None:
         response.data['status_code'] = response.status_code
-        response = Response(response.data)
     else:
         if isinstance(exc, DatabaseError):
             pass

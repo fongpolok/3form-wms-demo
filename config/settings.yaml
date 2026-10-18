@@ -1,0 +1,89 @@
+# =====================================================================
+# 3Form WMS / MES / APS — tunable settings
+# Change values here, then restart the server. No code edits needed.
+# Secrets (passwords, API keys, DB URLs) live in .env, NOT in this file.
+# =====================================================================
+
+site:
+  name: "3Form Demo Factory"
+  code: "HK01"
+  timezone: "Asia/Hong_Kong"
+  industry: "cosmetics"          # one of config/industries/*.yaml
+  languages: ["en", "zh-hant"]
+  default_language: "en"
+
+workstations:
+  # How many workstations the demo factory has. Steps come from the
+  # industry routing; extra workstations repeat the last step type.
+  count: 6
+  code_prefix: "WS"              # WS-01, WS-02, ...
+
+ids:
+  # Human-readable IDs, printed as barcodes. {date} = YYYYMMDD
+  work_order: "WO-{date}-{seq:04d}"
+  batch: "B-{date}-{seq:04d}"
+  wip: "WIP-{batch}-S{step:02d}-{seq:03d}"
+
+auth:
+  manager_idle_timeout_minutes: 30     # PIC / EM auto-logout
+  worker_session_hours: 12             # worker staff-ID session (one shift)
+  max_failed_logins: 5                 # then account is locked
+  lockout_minutes: 15
+  password_min_length: 10
+
+network_alarm:
+  heartbeat_interval_seconds: 3        # how often screens / gateway check in
+  timeout_seconds: 10                  # silence longer than this = alarm
+  sound: true
+  worker_poll_interval_ms: 1000        # worker page checks for new scans
+
+scanner_gateway:
+  # Each scanner's IP is mapped to one workstation. Add/replace hardware here.
+  forward_url: "http://127.0.0.1:8008/api/v1/gateway"
+  offline_queue_file: "logs/gateway_queue.sqlite3"
+  retry_seconds: 5
+  devices:
+    - id: "SCN-01"
+      driver: "honeywell_tcp"
+      mode: "client"                   # client = gateway connects to scanner; server = scanner connects to gateway
+      host: "127.0.0.1"                # scanner IP (127.0.0.1 = simulator)
+      port: 55256
+      terminator: "\r\n"
+      workstation: "WS-01"
+    - id: "SCN-02"
+      driver: "honeywell_tcp"
+      mode: "client"
+      host: "127.0.0.1"
+      port: 55257
+      terminator: "\r\n"
+      workstation: "WS-02"
+
+mes:
+  measurement_tolerance_pct: 5          # default +/- band when a step has a target value
+  allow_negative_good_qty: false
+
+excel_export:
+  max_rows_per_sheet: 200000
+  nightly_hour: 2                       # 02:00 local time
+  output_dir: "exports"
+
+backup:
+  output_dir: "backups"
+  keep_days: 30
+
+logging:
+  dir: "logs"
+  keep_days: 90
+  level: "INFO"
+  channels: ["app", "scanner", "camera", "aps", "agent", "audit"]
+
+demo:
+  # Used only by `python manage.py seed_demo`
+  tenant_name: "3Form Demo"
+  pic_username: "pic_demo"
+  em_username: "em_demo"
+  worker_staff_id: "1001"
+
+api:
+  throttle_user: "1200/min"      # per logged-in person
+  throttle_anon: "3000/min"      # per IP: health checks, gateway, login

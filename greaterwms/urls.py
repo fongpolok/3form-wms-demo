@@ -1,21 +1,22 @@
-from django.contrib import admin
 from django.conf import settings
-from django.urls import path, include, re_path
-from django.views.generic.base import TemplateView
-from django.contrib.staticfiles.views import serve
+from django.contrib import admin
+from django.urls import include, path, re_path
 from django.views.static import serve as static_serve
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
 from . import views
 
-
-def return_static(request, path, insecure=True, **kwargs):
-  return serve(request, path, insecure, **kwargs)
-
+FRONTEND_DIST = settings.BASE_DIR / 'frontend' / 'dist'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', TemplateView.as_view(template_name='dist/spa/index.html')),
-    path('myip/', views.myip, name='myip'),
+
+    # --- 3Form API v1 (new) ---
+    path('api/v1/', include('accounts.urls')),
+    path('api/v1/', include('mes.urls')),
+    path('api/v1/', include('reports.urls')),
+
+    # --- Existing GreaterWMS endpoints (now behind the new role-based login) ---
     path('asn/', include('asn.urls')),
     path('dn/', include('dn.urls')),
     path('staff/', include('staff.urls')),
@@ -35,29 +36,27 @@ urlpatterns = [
     path('goodsunit/', include('goodsunit.urls')),
     path('goodsclass/', include('goodsclass.urls')),
     path('goodscolor/', include('goodscolor.urls')),
-    path('goodsbrand/', include('goodsbrand.urls')),
     path('goodsshape/', include('goodsshape.urls')),
     path('goodsspecs/', include('goodsspecs.urls')),
     path('goodsorigin/', include('goodsorigin.urls')),
     path('scanner/', include('scanner.urls')),
     path('payment/', include('payment.urls')),
-    path('login/', include('userlogin.urls')),
-    path('register/', include('userregister.urls')),
     path('uploadfile/', include('uploadfile.urls')),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    re_path(r'^favicon\.ico$', views.favicon, name='favicon'),
-    re_path('^css/.*$', views.css, name='css'),
-    re_path('^js/.*$', views.js, name='js'),
-    re_path('^statics/.*$', views.statics, name='statics'),
-    re_path('^fonts/.*$', views.fonts, name='fonts'),
-    re_path(r'^robots.txt', views.robots, name='robots'),
-    re_path(r'^media/(?P<path>.*)$', static_serve, {'document_root': settings.MEDIA_ROOT}),
-    re_path(r'^static/(?P<path>.*)$', return_static, name='static')
-]
+    # Removed on purpose: legacy 'login/' (shared never-expiring token) and
+    # 'register/' (anyone could create a company) are unsafe in production.
 
-urlpatterns += [
+    # --- API docs (for the AI agent and integrators) ---
     path('api/', SpectacularAPIView.as_view(), name='schema'),
-    # Optional UI:
     path('api/debug/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='docs'),
+
+    # --- Files ---
+    re_path(r'^favicon\.ico$', views.favicon, name='favicon'),
+    re_path(r'^media/(?P<path>.*)$', static_serve, {'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^assets/(?P<path>.*)$', static_serve, {'document_root': FRONTEND_DIST / 'assets'}),
+    re_path(r'^brand/(?P<path>.*)$', static_serve, {'document_root': FRONTEND_DIST / 'brand'}),
+
+    # --- New Vue 3 app (client-side routes) ---
+    path('', views.spa),
+    re_path(r'^(login|worker|manager|pic)(/.*)?$', views.spa),
 ]

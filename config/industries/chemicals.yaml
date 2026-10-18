@@ -1,0 +1,28 @@
+# Industry preset: Chemicals.
+label: { en: "Chemicals", zh-hant: "化工" }
+sign_off_required: false          # EM e-signature at batch end
+lot_tracking: true
+steps:
+  - { code: DISP, name: { en: "Dispensing", zh-hant: "配料" }, std_seconds_per_unit: 3.0, measurement: null }
+  - { code: MIX, name: { en: "Reaction / mixing", zh-hant: "反應 / 混合" }, std_seconds_per_unit: 4.0, measurement: null }
+  - { code: FILL, name: { en: "Filling", zh-hant: "灌裝" }, std_seconds_per_unit: 1.5, measurement: { name: "Fill weight", unit: "g", target: 50.0 } }
+  - { code: CAP, name: { en: "Capping", zh-hant: "封蓋" }, std_seconds_per_unit: 1.0, measurement: null }
+  - { code: PACK, name: { en: "Packaging", zh-hant: "包裝" }, std_seconds_per_unit: 2.0, measurement: null }
+  - { code: QC, name: { en: "QC check", zh-hant: "品檢" }, std_seconds_per_unit: 3.0, measurement: null, is_qc: true }
+scrap_reasons: &default_scrap
+  - { code: SPILL,   en: "Spill / overfill",   zh-hant: "溢出 / 過量" }
+  - { code: UNDER,   en: "Underfill",          zh-hant: "不足量" }
+  - { code: LEAK,    en: "Leak / seal fail",   zh-hant: "洩漏 / 密封不良" }
+  - { code: LABEL,   en: "Label error",        zh-hant: "標籤錯誤" }
+  - { code: DAMAGE,  en: "Damaged packaging",  zh-hant: "包裝損壞" }
+  - { code: CONTAM,  en: "Contamination",      zh-hant: "污染" }
+  - { code: MACHINE, en: "Machine fault",      zh-hant: "機器故障" }
+  - { code: VISION,  en: "Vision reject",      zh-hant: "視覺檢測不合格", system_only: true }
+  - { code: OTHER,   en: "Other (add note)",   zh-hant: "其他(請註明)", needs_note: true }
+downtime_reasons:
+  - { code: BREAKDOWN, en: "Breakdown",          zh-hant: "故障" }
+  - { code: CHANGEOVER, en: "Changeover",        zh-hant: "換線" }
+  - { code: MATERIAL,  en: "Waiting material",   zh-hant: "等待物料" }
+  - { code: CLEANING,  en: "Cleaning",           zh-hant: "清潔" }
+  - { code: BREAK,     en: "Staff break",        zh-hant: "休息" }
+  - { code: OTHER,     en: "Other",              zh-hant: "其他" }

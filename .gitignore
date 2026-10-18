@@ -19,3 +19,10 @@ graphify-out/
 .graphifyignore
 .github/copilot-instructions.md
 .github/References/
+
+# 3Form WMS
+.env
+.env.legacy.bak
+exports/
+backups/
+frontend/dist/

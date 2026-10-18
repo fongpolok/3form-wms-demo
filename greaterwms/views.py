@@ -1,56 +1,25 @@
-from django.http import StreamingHttpResponse, JsonResponse
-from django.conf import settings
-from wsgiref.util import FileWrapper
-from rest_framework.exceptions import APIException
-import mimetypes, os
+import mimetypes
 
-def robots(request):
-    path = settings.BASE_DIR + request.path_info
-    content_type, encoding = mimetypes.guess_type(path)
-    resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
-    resp['Cache-Control'] = "max-age=864000000000"
-    return resp
+from django.conf import settings
+from django.http import FileResponse
+
 
 def favicon(request):
-    path = str(settings.BASE_DIR) + '/static/img/logo.png'
-    content_type, encoding = mimetypes.guess_type(path)
-    resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
-    resp['Cache-Control'] = "max-age=864000000000"
+    path = settings.BASE_DIR / 'frontend' / 'dist' / 'brand' / 'favicon.png'
+    content_type, _ = mimetypes.guess_type(str(path))
+    resp = FileResponse(open(path, 'rb'), content_type=content_type)
+    resp['Cache-Control'] = "max-age=86400"
     return resp
 
-def css(request):
-    path = str(settings.BASE_DIR) + '/templates/dist/spa' + request.path_info
-    content_type, encoding = mimetypes.guess_type(path)
-    resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
-    resp['Cache-Control'] = "max-age=864000000000"
-    return resp
 
-def js(request):
-    path = str(settings.BASE_DIR) + '/templates/dist/spa' + request.path_info
-    content_type, encoding = mimetypes.guess_type(path)
-    resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
-    resp['Cache-Control'] = "max-age=864000000000"
+def spa(request, *args, **kwargs):
+    """Serve the built Vue app. Read from disk on every request (no template
+    caching), so a rebuilt frontend is picked up without restarting Django."""
+    path = settings.BASE_DIR / 'frontend' / 'dist' / 'index.html'
+    if not path.exists():
+        from django.http import HttpResponse
+        return HttpResponse("Frontend not built yet. Run: cd frontend && npm install && npm run build", status=503,
+                            content_type="text/plain")
+    resp = FileResponse(open(path, 'rb'), content_type='text/html; charset=utf-8')
+    resp['Cache-Control'] = 'no-cache'
     return resp
-
-def statics(request):
-    path = str(settings.BASE_DIR) + '/templates/dist/spa' + request.path_info
-    content_type, encoding = mimetypes.guess_type(path)
-    resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
-    resp['Cache-Control'] = "max-age=864000000000"
-    return resp
-
-def fonts(request):
-    path = str(settings.BASE_DIR) + '/templates/dist/spa' + request.path_info
-    content_type, encoding = mimetypes.guess_type(path)
-    resp = StreamingHttpResponse(FileWrapper(open(path, 'rb')), content_type=content_type)
-    resp['Cache-Control'] = "max-age=864000000000"
-    return resp
-
-def myip(request):
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80))
-    print(s.getsockname()[0])
-    ip = s.getsockname()[0]
-    s.close()
-    return JsonResponse({"ip": ip})

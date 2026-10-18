@@ -7,23 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-19 - Phase 1 Foundation (signed off)
+
 ### Added
-- New features that have been added since the last release
+- Conda environment `3form_WMS` (Python 3.11, Django 4.2 LTS) via `environment.yml`.
+- `config/settings.yaml` holds every tunable value; `config/industries/*.yaml` holds 6 industry presets
+  (steps, scrap reasons, downtime reasons, sign-off rule).
+- One log file per channel (app, scanner, camera, aps, agent, audit), rotated daily, kept 90 days.
+- PostgreSQL 16 for WMS / people / audit trail, and MongoDB Atlas Local on port 27032 for MES events.
+  Both run in Docker (`deploy/docker-compose.dev.yml`).
+- Unique human-readable IDs, made automatically: `WO-…`, `B-…`, `WIP-B-…-S03-001`, plus a hidden
+  event ID on every scan and button press, so nothing is counted twice.
+- Roles: PIC > Engineering Manager > Worker, with per-person expiring logins, a 30-minute idle
+  logout, and a lock after 5 failed attempts.
+- Workers log in with their staff ID only, on PIC-registered devices only (also by badge scan).
+- Append-only audit trail. Only the PIC can correct WIP or scrap records, and a reason is required.
+- MES basics: work orders (PIC-typed = Special / Urgent), batches, and step Start / Finish / Scrap /
+  Machine stopped / Resume / Measure. Scrap is recorded at every step; workers never see scrap totals.
+- Site gateway: Honeywell TCP/IP driver (client or server mode), offline outbox, heartbeat.
+  `tools/scanner_simulator.py` for testing without hardware.
+- Network alarm on the worker screen (red frame, sound, "Fix it" checklist). Worker actions are kept
+  on the tablet while offline and sent automatically when the network is back.
+- New Vue 3 front end in the 3Form look (Inter + Source Serif 4, EN / 繁中, light and dark, WCAG 2.2 AA
+  contrast checked). Pages: Login, Worker station, Progress (production-line rail), Workstations,
+  Work Orders, Scrap Trace-back, Stock, Excel Export, People, Devices, Audit Trail, Settings.
+- Excel export (7 sheets) by button and `manage.py export_production` (nightly).
+- `deploy/backup/backup.sh`: daily PostgreSQL + MongoDB dumps, kept 30 days.
+- Light colour theme by default, with a Light / Dark / Auto switch remembered per device.
+- 23 automated tests (`pytest`).
 
 ### Changed
-- Changes in existing functionality
-
-### Deprecated
-- Soon-to-be removed features
+- Errors from the API now return their real HTTP status (previously always 200).
+- Time zone is Asia/Hong_Kong; the default language is English.
+- Throttling uses standard per-user / per-IP limits instead of one database write per request.
 
 ### Removed
-- Now removed features
-
-### Fixed
-- Any bug fixes
+- The old GreaterWMS Vue 2 screens (`templates/`) and the mobile app (`app/`).
+- Railway / Render hosting files (`railway.json`, `render.yaml`, `Dockerfile.render`).
+- Legacy `/login/` (shared never-expiring token) and `/register/` (open company sign-up) endpoints.
 
 ### Security
-- In case of vulnerabilities
+- Device tokens and login tokens are stored only as SHA-256 hashes.
+- CORS is limited to listed origins. Secrets live in `.env` (not committed).
+
+### Data
+- The 1,192 legacy SQLite records were copied into PostgreSQL (`backups/legacy_sqlite_dump.json`).
+  The old `db.sqlite3` file stays in place as a fallback copy.
 
 ---
 

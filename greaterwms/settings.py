@@ -1,21 +1,22 @@
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
+from core import config as threeform_config  # noqa: E402  (needs .env loaded first)
+from core.logging_setup import build_logging  # noqa: E402
 
 # SECURITY WARNING: keep the secret key used in production secret!
-from django.core.management.utils import get_random_secret_key
-SECRET_KEY = os.environ.get('SECRET_KEY', get_random_secret_key())
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 
 # Application definition
@@ -57,6 +58,10 @@ INSTALLED_APPS = [
     'throttle.apps.ThrottleConfig',
     'uploadfile.apps.UploadfileConfig',
     'scanner.apps.ScannerConfig',
+    'core.apps.CoreConfig',
+    'accounts.apps.AccountsConfig',
+    'mes.apps.MesConfig',
+    'reports.apps.ReportsConfig',
     'rest_framework',
     'django_filters',
     'corsheaders',
@@ -80,8 +85,7 @@ ROOT_URLCONF = 'greaterwms.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'frontend' / 'dist'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -97,18 +101,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'greaterwms.wsgi.application'
 CSRF_COOKIE_SAMESITE = None
 
-# Database
-# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-# update
+# Database: PostgreSQL for WMS stock, users and audit trail.
+# MES / production events live in MongoDB (see core/mongo.py).
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'OPTIONS': {
-            'timeout': 20,
-        }
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': os.environ.get('POSTGRES_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5433'),
+        'NAME': os.environ.get('POSTGRES_DB', 'threeform_wms'),
+        'USER': os.environ.get('POSTGRES_USER', 'threeform'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+        'CONN_MAX_AGE': 60,
     }
 }
+# One-off: read the old SQLite file (used only to copy legacy data into PostgreSQL).
+if os.environ.get('LEGACY_SQLITE_PATH'):
+    DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': os.environ['LEGACY_SQLITE_PATH']}}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -134,13 +142,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 
-LANGUAGE_CODE = 'zh-hans'
+LANGUAGE_CODE = 'en'
 
-TIME_ZONE = 'Asia/Shanghai'
+TIME_ZONE = threeform_config.get('site.timezone', 'Asia/Hong_Kong')
 
 USE_I18N = True
-
-USE_L10N = True
 
 USE_TZ = False
 
@@ -158,9 +164,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media').replace('\\', '/')
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'GreaterWMS',
-    'DESCRIPTION': 'GreaterWMS API Documents',
-    'VERSION': '2.1.48',
+    'TITLE': '3Form WMS / MES / APS',
+    'DESCRIPTION': '3Form WMS API (agent-ready). Auth: Authorization: Bearer <token>',
+    'VERSION': '3.1.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
     'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead
@@ -187,10 +193,14 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser'
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': ['utils.auth.Authtication', ],
-    'DEFAULT_PERMISSION_CLASSES': ["utils.permission.Normalpermission", ],
-    'DEFAULT_THROTTLE_CLASSES': ['utils.throttle.VisitThrottle', ],
-    # 'DEFAULT_THROTTLE_RATES': ['utils.throttle.VisitThrottle', ],
+    # Per-person expiring tokens. Default: only PIC / Eng. Manager may call an
+    # endpoint; worker endpoints opt in explicitly (secure by default).
+    'DEFAULT_AUTHENTICATION_CLASSES': ['accounts.authentication.TokenAuthentication', ],
+    'DEFAULT_PERMISSION_CLASSES': ["accounts.permissions.IsManagerOrAbove", ],
+    'DEFAULT_THROTTLE_CLASSES': ['rest_framework.throttling.UserRateThrottle',
+                                 'rest_framework.throttling.AnonRateThrottle'],
+    'DEFAULT_THROTTLE_RATES': {'user': threeform_config.get('api.throttle_user', '1200/min'),
+                               'anon': threeform_config.get('api.throttle_anon', '3000/min')},
     'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'rest_framework.negotiation.DefaultContentNegotiation',
     'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',
     'DEFAULT_VERSIONING_CLASS': None,
@@ -241,90 +251,8 @@ REST_FRAMEWORK = {
     },
 }
 
-SERVER_LOGS_FILE = os.path.join(BASE_DIR, "logs", "server.log")
-ERROR_LOGS_FILE = os.path.join(BASE_DIR, "logs", "error.log")
-if not os.path.exists(os.path.join(BASE_DIR, "logs")):
-    os.makedirs(os.path.join(BASE_DIR, "logs"))
-
-STANDARD_LOG_FORMAT = (
-    "[%(asctime)s][%(name)s.%(funcName)s():%(lineno)d] [%(levelname)s] %(message)s"
-)
-CONSOLE_LOG_FORMAT = (
-    "[%(asctime)s][%(name)s.%(funcName)s():%(lineno)d] [%(levelname)s] %(message)s"
-)
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {"format": STANDARD_LOG_FORMAT},
-        "console": {
-            "format": CONSOLE_LOG_FORMAT,
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-        "file": {
-            "format": CONSOLE_LOG_FORMAT,
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-    },
-    "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": SERVER_LOGS_FILE,
-            "maxBytes": 1024 * 1024 * 100,
-            "backupCount": 5,
-            "formatter": "standard",
-            "encoding": "utf-8",
-        },
-        "error": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": ERROR_LOGS_FILE,
-            "maxBytes": 1024 * 1024 * 100,
-            "backupCount": 3,
-            "formatter": "standard",
-            "encoding": "utf-8",
-        },
-        "console": {
-            "level": "INFO",
-            "class": "logging.StreamHandler",
-            "formatter": "console",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "scripts": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "django.db.backends": {
-            "handlers": [],
-            "propagate": True,
-            "level": "INFO",
-        },
-        "stock": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "asn": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "goods": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
+# One daily-rotated log file per channel (app, scanner, camera, aps, agent, audit).
+LOGGING = build_logging(BASE_DIR)
 
 # Tunable thresholds for the low-stock / expiry alert feature (stock/services.py).
 # Change these instead of editing alert logic.
@@ -334,9 +262,8 @@ WMS_ALERT_SETTINGS = {
     "EXPIRY_ALERT_ENABLED": True,
 }
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ORIGIN_WHITELIST = ()
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOWED_ORIGINS = [o for o in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if o]
 
 CORS_ALLOW_METHODS = (
     'DELETE',
@@ -363,7 +290,9 @@ CORS_ALLOW_HEADERS = (
     'operator',
     'device',
     'app-id',
-    'event-sign'
+    'event-sign',
+    'x-device-token',
+    'x-gateway-token',
 )
 
 LAZY_RENDERING = True
@@ -376,4 +305,4 @@ PUT_THROTTLE = 500
 PATCH_THROTTLE = 500
 DELETE_THROTTLE = 500
 
-JWT_TIME = 60 * 60 * 24 * 365 * 20
+JWT_TIME = 60 * 60 * 24 * 365 * 20  # legacy GreaterWMS, unused by new auth

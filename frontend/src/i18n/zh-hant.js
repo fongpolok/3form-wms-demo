@@ -1,0 +1,65 @@
+export default {
+  app: { name: '3Form WMS', tagline: '倉儲 · 生產 · 排程' },
+  common: {
+    save: '儲存', cancel: '取消', close: '關閉', loading: '載入中…', refresh: '重新整理', logout: '登出',
+    language: '語言', none: '暫時沒有資料。', reason: '原因', search: '搜尋', yes: '是', no: '否',
+    from: '由', to: '至', status: '狀態', qty: '數量', actions: '操作', edit: '修改', online: '在線', offline: '離線',
+  },
+  theme: { label: '顏色主題', light: '淺色', dark: '深色', auto: '自動' },
+  role: { PIC: '負責人 (PIC)', EM: '工程經理', WORKER: '工人' },
+  login: {
+    title: '登入', subtitle: '供負責人及工程經理使用', username: '用戶名稱', password: '密碼', submit: '登入',
+    workerLink: '工作站?打開工人畫面',
+  },
+  nav: {
+    progress: '生產進度', workstations: '工作站', workOrders: '工單', scrap: '報廢追溯', stock: '庫存',
+    export: '匯出 Excel', accounts: '人員', devices: '裝置', audit: '審計記錄', settings: '設定',
+  },
+  progress: {
+    title: '生產進度', subtitle: '每張工單由發放至入倉或出貨。', order: '工單', toStock: '入倉', toClient: '直接出貨',
+    urgent: '特急單', due: '到期', batches: '批次', late: '逾期', done: '完成', running: '進行中', waiting: '等待中',
+  },
+  worker: {
+    notRegistered: '此裝置未登記',
+    notRegisteredHelp: '只有負責人登記的工作站裝置才可打開此畫面。請負責人在此裝置登入,選擇「人員 → 裝置 → 登記此裝置」。',
+    enterStaffId: '掃描員工證或輸入員工編號', staffId: '員工編號', go: '開始當更', clear: '清除',
+    station: '工作站', step: '工序', scanBatch: '掃描批次標籤,或在下面選擇',
+    waiting: '等待此工序', noneWaiting: '暫時沒有批次等待此工序。', current: '正在進行', qtyIn: '收到數量',
+    start: '開始', finish: '完成', scrap: '報廢', stop: '機器停止', resume: '機器恢復運作', measure: '量度',
+    goodQty: '良品數量', scrapQty: '報廢數量', whyScrap: '報廢原因?', whyStop: '機器停止原因?', note: '備註',
+    value: '數值', target: '目標', recorded: '已記錄', finished: '工序完成', started: '已開始',
+    stopped: '已標記機器停止', resumed: '機器恢復運作', endShift: '結束當更',
+    queued: '已儲存在此裝置;網絡恢復後會自動傳送', pendingSend: '{n} 項操作等待傳送', urgent: '特急',
+    machineStopped: '機器已停止',
+  },
+  alarm: {
+    title: '網絡問題', serverDown: '無法連接伺服器。', scannerDown: '掃描器沒有回應:{id}', db: '伺服器資料庫沒有回應。',
+    keepWorking: '請繼續工作。操作會儲存在此裝置,網絡恢復後自動傳送。', fix: '處理方法',
+    check1: '檢查此裝置的網絡線 / Wi-Fi。', check2: '檢查掃描器電源燈是否亮起。', check3: '兩分鐘後仍然紅色?請致電工程經理。',
+    mute: '靜音',
+  },
+  wo: {
+    title: '工單', new: '新增特急工單', product: '產品編號', productName: '產品名稱', client: '客戶', qty: '數量',
+    batches: '批次數目', due: '到期日', shipMode: '品檢後', stock: '入倉', direct: '直接出貨給客戶',
+    priority: '客戶優先度(1 = 最高)', create: '建立工單', created: '已建立 {id}', source: '來源',
+    viewOnly: '只有負責人可以建立工單。',
+  },
+  scrap: {
+    title: '報廢追溯', subtitle: '輸入批次或工單編號,查看每個工序、報廢及停機。', lookup: '批次或工單編號', find: '查找',
+    wip: '在製品記錄', events: '事件', editWip: '更正在製品', editEvent: '更正記錄',
+    reasonRequired: '更正原因(會記錄在審計記錄)', pickOnly: '只有負責人可以更正記錄。', saved: '更正已儲存並記錄。',
+  },
+  stock: { title: '現有庫存', subtitle: '來自倉儲系統 (WMS)。', code: '貨品編號', desc: '描述', onhand: '現有', bin: '貨位' },
+  export: { title: '匯出 Excel', subtitle: '一個檔案:工單、工序記錄、報廢、停機、量度、庫存變動、審計記錄。', download: '下載 Excel' },
+  accounts: {
+    title: '人員', add: '新增人員', name: '姓名', staffId: '員工編號', username: '用戶名稱', password: '密碼', role: '角色',
+    active: '啟用', locked: '已鎖定', unlock: '解鎖', disable: '停用', enable: '啟用',
+  },
+  devices: {
+    title: '工作站裝置', subtitle: '只有已登記的裝置可以打開工人畫面。', register: '登記裝置', registerThis: '登記此裝置',
+    name: '裝置名稱', workstation: '工作站', tokenOnce: '已登記。此裝置現已設定為 {ws}。', revoke: '撤銷', activate: '重新啟用',
+    thisDevice: '此裝置', lastSeen: '最後連線', otherDevice: '登記另一部裝置:把這個一次性代碼輸入該裝置',
+  },
+  audit: { title: '審計記錄', subtitle: '每項更改:誰、何時、舊值、新值。記錄不可修改。', who: '誰', when: '何時', what: '甚麼', before: '之前', after: '之後' },
+  settings: { title: '設定', subtitle: '請在伺服器修改 config/settings.yaml 然後重新啟動。此處只供查看。', industry: '行業', steps: '工序', scrapReasons: '報廢原因' },
+}
