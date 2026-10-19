@@ -33,6 +33,9 @@
   --chart-2: #6b8fd1;      /* de-emphasised bars */
   --chart-grid: #e5e7eb;
   --chart-ref: #4b5563;    /* reference lines (limits, targets) */
+  --chart-1-text: #ffffff; /* text inside a chart-1 fill: 7.0:1 */
+  --chart-2-text: #111827; /* text inside a chart-2 fill: 5.5:1 */
+  --chart-off: #e9edf3;    /* non-working time on time charts */
 
   --font-body: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   --font-display: 'Source Serif 4', 'Noto Serif TC', Georgia, serif;
@@ -75,6 +78,9 @@
     --chart-2: #3b5cc9;    /* 2.95:1 vs surface: always paired with value labels + table view */
     --chart-grid: #26314a;
     --chart-ref: #b6bfce;
+    --chart-1-text: #0b1220;   /* 6.0:1 */
+    --chart-2-text: #ffffff;   /* 5.9:1 */
+    --chart-off: #0a1020;
     color-scheme: dark;
   }
 }
@@ -101,5 +107,8 @@
   --chart-2: #3b5cc9;
   --chart-grid: #26314a;
   --chart-ref: #b6bfce;
+  --chart-1-text: #0b1220;
+  --chart-2-text: #ffffff;
+  --chart-off: #0a1020;
   color-scheme: dark;
 }

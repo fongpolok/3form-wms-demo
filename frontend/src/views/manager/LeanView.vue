@@ -45,7 +45,8 @@ const oeeAvg = computed(() => avg((data.value?.oee || []).map((r) => r.oee)))
 const oeeItems = computed(() => (data.value?.oee || []).map((r) => ({
   key: r.workstation, label: `${r.workstation} ${pick(r.step_name)}`, value: r.oee, valueLabel: r.oee == null ? '–' : `${r.oee}%`,
   tip: r.oee == null ? ['No finished batches'] : [`Availability ${r.availability}%`, `Performance ${r.performance}%`,
-    `Quality ${r.quality}%`, `${r.batches} batches · ${r.downtime_min} min stopped`],
+    `Quality ${r.quality}%`, `${r.batches} batches · ${r.downtime_min} min stopped`,
+    `Idle (no orders) ${r.idle_h} h of ${r.planned_h} h planned`],
 })))
 const pareto = computed(() => {
   let crossed = false
@@ -98,8 +99,8 @@ const cpkState = computed(() => {
       <ChartFrame :title="t('lean.oeeByStation')" :subtitle="t('lean.oeeSub')">
         <HBarChart :items="oeeItems" :max="100" :label-width="150" />
         <template #table>
-          <table class="table"><thead><tr><th>{{ t('nav.workstations') }}</th><th>OEE</th><th>A</th><th>P</th><th>Q</th><th>{{ t('progress.batches') }}</th></tr></thead>
-            <tbody><tr v-for="r in data.oee" :key="r.workstation"><td>{{ r.workstation }} {{ pick(r.step_name) }}</td><td>{{ r.oee ?? '–' }}</td><td>{{ r.availability ?? '–' }}</td><td>{{ r.performance ?? '–' }}</td><td>{{ r.quality ?? '–' }}</td><td>{{ r.batches }}</td></tr></tbody></table>
+          <table class="table"><thead><tr><th>{{ t('nav.workstations') }}</th><th>OEE</th><th>A</th><th>P</th><th>Q</th><th>{{ t('progress.batches') }}</th><th>{{ t('lean.plannedH') }}</th><th>{{ t('lean.idleH') }}</th></tr></thead>
+            <tbody><tr v-for="r in data.oee" :key="r.workstation"><td>{{ r.workstation }} {{ pick(r.step_name) }}</td><td>{{ r.oee ?? '–' }}</td><td>{{ r.availability ?? '–' }}</td><td>{{ r.performance ?? '–' }}</td><td>{{ r.quality ?? '–' }}</td><td>{{ r.batches }}</td><td>{{ r.planned_h }}</td><td>{{ r.idle_h }}</td></tr></tbody></table>
         </template>
       </ChartFrame>
 

@@ -49,7 +49,7 @@ textarea { min-height: 88px; }
 
 /* ---- Surfaces ---- */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
-.stack { display: grid; gap: var(--gap); }
+.stack { display: grid; gap: var(--gap); align-content: start; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .spacer { flex: 1; }
 

@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/v1/', include('mes.urls')),
     path('api/v1/', include('reports.urls')),
     path('api/v1/', include('inventory.urls')),
+    path('api/v1/', include('aps.urls')),
 
     # --- Existing GreaterWMS endpoints (now behind the new role-based login) ---
     path('asn/', include('asn.urls')),

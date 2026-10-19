@@ -1,4 +1,4 @@
-# 3Form WMS: start, test and troubleshoot (v3.2.0)
+# 3Form WMS: start, test and troubleshoot (v3.3.0)
 
 ## 1. First-time setup (once per computer)
 
@@ -9,6 +9,7 @@
 | Create your secrets file | `cp .env.example .env`, then change every `change-me` value |
 | Start the databases + create tables | `./scripts/dev_start.sh` |
 | Create the demo accounts and 2 sample orders | `conda run -n 3form_WMS python manage.py seed_demo` |
+| Load Hong Kong public holidays (planner calendar) | `conda run -n 3form_WMS python manage.py load_holidays` |
 | Upgrading from v3.1.0? Run once | `conda run -n 3form_WMS python manage.py migrate && conda run -n 3form_WMS python manage.py upgrade_v32` |
 | 3 months of demo history (for pitching) | `conda run -n 3form_WMS python manage.py seed_history` (remove: `--clear`) |
 
@@ -63,6 +64,7 @@ To register a different tablet from your own computer, press **Register a device
 | Backup both databases now | `./deploy/backup/backup.sh` (output: `backups/`, kept 30 days) |
 | Nightly Excel file | `conda run -n 3form_WMS python manage.py export_production` (output: `exports/`) |
 | Restore | see the bottom of `deploy/backup/backup.sh` |
+| Re-plan when a machine is stopped > 30 min | `conda run -n 3form_WMS python manage.py aps_watch` (scheduled every 5 min) |
 | Expiry alerts + re-check orders waiting for material | `conda run -n 3form_WMS python manage.py daily_checks` (scheduled 06:00) |
 
 **Scheduled every night on this Mac** (installed 2026-10-19 and tested):
@@ -75,6 +77,13 @@ Two macOS details that matter:
 - `cron` needs **Full Disk Access** (System Settings → Privacy & Security), because the project is in Desktop.
 - Start the script **through `/bin/bash`**. When the script is run directly, macOS blocks Python inside the Desktop folder.
 - To see or edit the schedule, use `crontab -l` / `crontab -e`. The output goes to `logs/cron.log`.
+
+## 5b. Planner (APS)
+
+- **Plan page:** the Gantt chart, LATE RISK orders, blocked orders, and drafts to accept or reject.
+- **Calendar page:** shifts, breaks, working days, holidays and staffing. Changes apply from the next re-plan.
+- **Rules in `config/settings.yaml` → `aps:`:** horizon, changeover, frozen hours, late buffer, workers per station, and whether re-planning is automatic.
+- **Holidays:** check gov.hk each year and add the next year to `aps/holidays.py`, then run `load_holidays`.
 
 ## 6. Troubleshooting
 

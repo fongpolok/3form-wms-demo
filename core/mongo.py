@@ -36,6 +36,8 @@ COLLECTIONS = {
     "device_health": [([("device_id", ASCENDING)], {"unique": True})],
     "vision_results": [([("event_id", ASCENDING)], {"unique": True}),
                        ([("workstation", ASCENDING), ("ts", DESCENDING)], {})],
+    "plans": [([("plan_id", ASCENDING)], {"unique": True}),
+              ([("tenant_openid", ASCENDING), ("status", ASCENDING), ("created_at", DESCENDING)], {})],
     "rack_reports": [([("event_id", ASCENDING)], {"unique": True}),
                      ([("bin_name", ASCENDING), ("ts", DESCENDING)], {})],
 }

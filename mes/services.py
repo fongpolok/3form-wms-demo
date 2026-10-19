@@ -112,6 +112,8 @@ def create_work_order(account, data, source="PIC", request=None):
     from . import materials
     materials.gate_new_order(account.tenant_openid, wo_id)
     wo = db.work_orders.find_one({"wo_id": wo_id}, {"_id": 0})
+    from aps.triggers import on_new_order
+    on_new_order(account.tenant_openid, wo)
     return wo, [_clean(b) for b in batches]
 
 
@@ -484,9 +486,14 @@ def worker_board(tenant_openid, workstation_code):
     if wip:
         wip["product_name"] = wos.get(wip["wo_id"], {}).get("product_name", "")
         wip["machine_stopped"] = bool(wip.get("stopped_since"))
-    # Ready batches first, then urgent, earliest due, client priority.
-    queue.sort(key=lambda b: (b["waiting_material"], not b["special_urgent"], b["due_date"],
-                              wos.get(b["wo_id"], {}).get("client_priority", 3)))
+    # Published APS plan decides the order; without a plan: urgent, earliest due, client priority.
+    from aps.service import planned_queue
+    planned = planned_queue(tenant_openid, workstation_code)
+    far = datetime.max.replace(tzinfo=timezone.utc)
+    for b in queue:
+        b["planned_start"] = planned.get(b["batch_id"])
+    queue.sort(key=lambda b: (b["waiting_material"], b["planned_start"] or far, not b["special_urgent"],
+                              b["due_date"], wos.get(b["wo_id"], {}).get("client_priority", 3)))
     industry = config.industry()
     return {
         "workstation": ws,

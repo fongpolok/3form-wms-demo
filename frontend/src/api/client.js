@@ -46,6 +46,8 @@ export async function api(path, { method = 'GET', body, raw = false, timeoutMs =
 export const get = (p) => api(p)
 export const post = (p, body) => api(p, { method: 'POST', body })
 export const patch = (p, body) => api(p, { method: 'PATCH', body })
+export const put = (p, body) => api(p, { method: 'PUT', body })
+export const del = (p) => api(p, { method: 'DELETE' })
 
 export async function download(path, filename) {
   const res = await api(path, { raw: true, timeoutMs: 60000 })

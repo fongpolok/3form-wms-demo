@@ -2,7 +2,7 @@
 Lean / Six Sigma figures (DMAIC "Measure" and "Control").
 
   OEE          = Availability x Performance x Quality, per workstation
-                 Availability = run time / (run time + machine-stopped time)
+                 Availability = run time / (run time + machine-stopped time) while a batch is open
                  Performance  = std seconds per piece x pieces processed / run time  (capped at 100 %)
                  Quality      = good / (good + scrap)
   FPY          = good out / pieces in, per step;  RTY = product of step FPYs
@@ -13,8 +13,9 @@ Lean / Six Sigma figures (DMAIC "Measure" and "Control").
                  rules: 1 point beyond a limit; 8 in a row on one side of the centre
                  Cp / Cpk against target +/- mes.measurement_tolerance_pct
 
-Planned time in Phase 2 = time batches were open at the workstation. Phase 3
-(APS calendar and shifts) will replace it with scheduled shift time.
+Planned time = shift time minus breaks and holidays (APS calendar). Time in a
+shift with no batch open is reported as "idle (no orders)" and is not counted
+against Availability, so a quiet day does not look like poor machine performance.
 """
 import logging
 from collections import defaultdict
@@ -55,12 +56,15 @@ def oee(tenant, date_from, date_to):
         r["scrap"] += w.get("scrap_qty") or 0
         r["std_work_s"] += std.get(w["step_code"], 0) * ((w.get("good_qty") or 0) + (w.get("scrap_qty") or 0))
         r["batches"] += 1
+    from aps.calendar import planned_minutes
+    planned_s = planned_minutes(date_from, date_to) * 60.0      # shift time minus breaks and holidays
     out = []
     for ws in list_workstations():
         r = rows.get(ws["code"])
         if not r or r["open_s"] <= 0:
             out.append({"workstation": ws["code"], "step_code": ws["step_code"], "step_name": ws["step_name"],
-                        "oee": None, "availability": None, "performance": None, "quality": None, "batches": 0})
+                        "oee": None, "availability": None, "performance": None, "quality": None, "batches": 0,
+                        "planned_h": round(planned_s / 3600, 1), "idle_h": round(planned_s / 3600, 1)})
             continue
         run = max(r["open_s"] - r["down_s"], 1.0)
         a = run / r["open_s"]
@@ -70,7 +74,11 @@ def oee(tenant, date_from, date_to):
         out.append({"workstation": ws["code"], "step_code": ws["step_code"], "step_name": ws["step_name"],
                     "availability": _pct(a), "performance": _pct(p), "quality": _pct(q),
                     "oee": _pct(a * p * q) if q is not None else None, "batches": r["batches"],
-                    "good": r["good"], "scrap": r["scrap"], "downtime_min": round(r["down_s"] / 60, 1)})
+                    "good": r["good"], "scrap": r["scrap"], "downtime_min": round(r["down_s"] / 60, 1),
+                    # Idle = planned shift time with no batch open (no orders): shown, not counted against OEE.
+                    "planned_h": round(planned_s / 3600, 1),
+                    "idle_h": round(max(planned_s - r["open_s"], 0) / 3600, 1),
+                    "utilisation": _pct(min(r["open_s"] / planned_s, 1.0)) if planned_s else None})
     return out
 
 

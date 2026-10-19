@@ -87,6 +87,7 @@ class Command(BaseCommand):
         n_mongo = 0
         for coll in ("work_orders", "batches", "wip", "step_events", "vision_results"):
             n_mongo += self.db[coll].delete_many({"tenant_openid": t, "demo": True}).deleted_count
+        n_mongo += self.db.plans.delete_many({"tenant_openid": t}).deleted_count   # plans are derived; rebuilt any time
         with transaction.atomic():
             wo_ids = list(Reservation.objects.filter(tenant_openid=t, is_demo=True).values_list("wo_id", flat=True))
             MaterialRequest.objects.filter(tenant_openid=t, wo_id__startswith="WO-", goods_code__in=MATERIALS).delete()
@@ -333,6 +334,25 @@ class Command(BaseCommand):
                 mes.record_measurement(worker, "WS-02", round(random.gauss(50.0, 0.25), 2), uuid.uuid4().hex)
             for coll in ("wip", "step_events"):
                 self.db[coll].update_many({"batch_id": first["batch_id"]}, {"$set": {"demo": True}})
+        # A week of upcoming ERP orders for the APS plan; the 6,000-piece hand cream due tomorrow is
+        # deliberately too big to make it in time, so the plan shows a LATE RISK.
+        for code, qty, nb, mode, due_in in [("HC-50", 3000, 2, "stock", 3), ("LT-200", 2400, 2, "stock", 4),
+                                            ("SR-30", 1500, 1, "direct", 5), ("HC-50", 2000, 1, "stock", 6),
+                                            ("LT-200", 1800, 1, "stock", 7), ("HC-50", 6000, 2, "stock", 1)]:
+            wo, _ = mes.create_work_order(pic, {"product_code": code, "qty": qty, "batches": nb, "ship_mode": mode,
+                                                "due_date": (date.today() + timedelta(days=due_in)).isoformat(),
+                                                "client": PRODUCTS[code][4],
+                                                "client_priority": random.randint(1, 4)}, source="ERP")
+            self.db.work_orders.update_one({"wo_id": wo["wo_id"]}, {"$set": {"demo": True}})
+            self.db.batches.update_many({"wo_id": wo["wo_id"]}, {"$set": {"demo": True}})
+            Reservation.objects.filter(wo_id=wo["wo_id"]).update(is_demo=True)
+            made.append((wo["wo_id"], wo["status"]))
+        # Publish a starting plan, as if the Engineering Manager had accepted it.
+        from aps import service as aps
+        em = Account.objects.filter(tenant_openid=self.t, role="EM").first() or pic
+        plan = aps.request_replan(self.t, "demo start plan", "seed_history")
+        aps.decide(em, plan["plan_id"], True)
         inv.expiry_alerts(self.t)
         Alert.objects.filter(tenant_openid=self.t, kind=Alert.EXPIRY, detail__icontains="RM-A").update(is_demo=True)
+        Alert.objects.filter(tenant_openid=self.t, kind__startswith="PLAN_").update(is_demo=True)
         self.stdout.write(f"Today's orders: {made}")

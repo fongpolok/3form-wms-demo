@@ -22,9 +22,11 @@ const base = computed(() => (session.role.value === 'PIC' ? '/pic' : '/manager')
 const NAV = [
   { group: 'nav.gProduction' },
   { to: 'progress', icon: 'chart', label: 'nav.progress', min: 'EM' },
+  { to: 'plan', icon: 'list', label: 'nav.plan', min: 'EM' },
   { to: 'lean', icon: 'gauge', label: 'nav.lean', min: 'EM' },
   { to: 'workstations', icon: 'station', label: 'nav.workstations', min: 'EM' },
   { to: 'work-orders', icon: 'list', label: 'nav.workOrders', min: 'EM' },
+  { to: 'calendar', icon: 'chart', label: 'nav.calendar', min: 'EM' },
   { to: 'products', icon: 'ruler', label: 'nav.products', min: 'EM' },
   { to: 'scrap', icon: 'flag', label: 'nav.scrap', min: 'EM' },
   { group: 'nav.gWarehouse' },

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-10-19 - Phase 3 APS planner (signed off)
+
+### Added
+- **APS planner** (`aps` app): finite-capacity forward scheduling on a 5-minute grid for 14 days.
+  - **Sort:** Special/Urgent → due date → client priority → product (groups the same product) → time received.
+  - **Fit:** steps in order; free workstation; free worker (per-shift staffing); working time only.
+    Work pauses over breaks, nights and holidays.
+  - **Changeover** (20 min) when the product changes on a workstation.
+- **Plan workflow:** draft → Engineering Manager accepts / rejects. Special/Urgent orders publish at once, with an alert
+  listing orders pushed later. The next 4 h of the published plan are frozen, and running batches are never moved.
+- **Automatic re-plan** on a new order, on material release, and when a machine has been stopped > 30 min
+  (`manage.py aps_watch`, every 5 min). There's also a "Re-plan now" button.
+- **LATE RISK** when the planned finish is within 4 h of the due date's end of day. Orders waiting for material are
+  listed as blocked (not planned).
+- **Plan page:** Gantt chart per workstation (non-working time shaded, changeovers striped, frozen/running marked,
+  click an order to highlight it, hover for details), order list with spare time, a blocked list, and a draft panel
+  showing what changed. Block text colours are contrast-checked.
+- **Calendar page:** shifts and breaks, working days, holidays, and per-date staffing (the PIC edits, the EM reads).
+  **Hong Kong general holidays 2026–2027** are loaded from gov.hk (`manage.py load_holidays`).
+- The worker queue follows the published plan and shows each batch's planned start.
+- **OEE uses shift time:** planned hours and "idle (no orders)" hours are shown, and idle time is not counted
+  against Availability.
+- Demo history adds a week of upcoming orders (one deliberately LATE RISK) and a published starting plan.
+- 58 automated tests (17 new).
+
 ## [3.2.0] - 2026-10-19 - Phase 2 MES + WMS link (signed off)
 
 ### Added

@@ -88,6 +88,9 @@ def recheck_waiting(tenant):
         _apply(tenant, wo, shortages)
         if not shortages:
             released.append(wo["wo_id"])
+    if released:
+        from aps.triggers import on_material_released
+        on_material_released(tenant, released)
     return released
 
 

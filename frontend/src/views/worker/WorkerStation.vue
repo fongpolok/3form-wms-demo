@@ -8,7 +8,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api, ApiError, get, newEventId, post } from '../../api/client.js'
-import { LANGS, pick, setLang } from '../../i18n/index.js'
+import { fmtDateTime, LANGS, pick, setLang } from '../../i18n/index.js'
 import { setAlarmSound, useHealth } from '../../composables/health.js'
 import { useSession } from '../../composables/session.js'
 import { storage } from '../../composables/storage.js'
@@ -331,7 +331,8 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); setAlarmSound(false) })
               <strong class="mono">{{ b.batch_id }}</strong>
               <span v-if="b.special_urgent" class="pill pill-alarm"><Icon name="alert" :size="14" /> {{ t('worker.urgent') }}</span>
               <span v-if="b.waiting_material" class="pill pill-warn"><Icon name="pause" :size="14" /> {{ t('wo.waitingMaterial') }}</span>
-              <p class="muted">{{ b.product_name }} · {{ b.last_good_qty ?? b.qty }} pcs</p>
+              <p class="muted">{{ b.product_name }} · {{ b.last_good_qty ?? b.qty }} pcs
+                <template v-if="b.planned_start"> · {{ t('plan.plannedStart') }} {{ fmtDateTime(b.planned_start) }}</template></p>
             </div>
             <button class="act act-primary small" :disabled="busy || b.waiting_material" @click="act('start', { batch_id: b.batch_id })">
               <Icon name="play" :size="28" /> {{ t('worker.start') }}

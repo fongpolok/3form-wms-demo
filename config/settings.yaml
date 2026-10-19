@@ -116,3 +116,17 @@ spc:
 inventory:
   block_expired: true            # expired lots are never picked for production or shipping
   expiry_warn_days: 30           # alert this many days before a lot expires
+
+aps:
+  horizon_days: 14               # how far ahead the planner schedules
+  slot_minutes: 5                # planning grid
+  working_days: [0, 1, 2, 3, 4, 5]   # Mon=0 ... Sun=6  (Mon-Sat)
+  shifts:                        # PIC can override these on the Calendar page
+    - { code: "A", start: "08:00", end: "16:00", break_start: "12:00", break_minutes: 45, workers: 6 }
+    - { code: "B", start: "16:00", end: "24:00", break_start: "20:00", break_minutes: 45, workers: 6 }
+  workers_per_station: 1         # people needed while a workstation runs
+  changeover_minutes: 20         # added when the next batch on a workstation is a different product
+  frozen_hours: 4                # the next N hours of the published plan do not move on re-plan
+  late_buffer_hours: 4           # LATE RISK if finish > due date end-of-day minus this
+  replan_on_stop_minutes: 30     # a machine stopped longer than this triggers a draft re-plan
+  auto_replan: true              # re-plan automatically on new orders / material / long stops

@@ -1,6 +1,6 @@
 # 3Form WMS / MES / APS — Project Plan (agreed design)
 
-Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19.
+Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19. Phase 3 (v3.3.0) signed off 2026-10-19.
 Diagrams in this folder: `01-system-map.html`, `02-production-flow.html`, `03-version-timeline.html`.
 
 ---
@@ -79,7 +79,7 @@ A **production-scale** factory system for small and medium manufacturers, sold a
 ### Data
 - **PostgreSQL:** WMS stock, users, audit.
 - **MongoDB Atlas Local** on `mongodb://localhost:27032` (27030 is already used by `fpl-mongo` on this Mac; the port is a setting in `.env`): MES events, batches, WIP, scrap, downtime, measurements, APS plans, agent advice.
-- **Search:** vector index + **hybrid** (keyword + meaning, via `$rankFusion`) over scrap/issue notes, downtime notes, work-order text, agent advice and SOP documents. Embeddings come from **bge-m3** running locally, which handles English + 中文.
+- **Search (decided 2026-10-19):** **keyword (full-text) search only for now**, over scrap/issue notes, downtime notes, work-order text, agent advice and SOP documents. The vector + hybrid index structure is created but **switched off**, and **no local model (bge-m3) is included**. The embedding source (a small local model or an online API) is to be chosen later.
 - **Excel export:** one workbook with these sheets, by date range, plus an automatic nightly copy:
   - Work orders
   - Step logs
@@ -156,13 +156,14 @@ WMS_Demo/
 | 1 Foundation | v3.1.0 | conda env, config, logging, Postgres + Mongo :27030 in Docker, unique IDs, roles + 3 demo logins, device registry, audit trail, new Vue 3 shell in 3Form look, worker page (WCAG), Honeywell TCP driver + network alarm, basic step logging (start / finish / scrap / stop / measure), Excel export, backups | Log in as each demo user; scan with a Honeywell (or the simulator); pull the network cable and see the alarm; download the Excel file |
 | 2 MES + WMS link | v3.2.0 | **new WMS screens for inbound (ASN), outbound (DN), bins, cycle count**; stock-out rule **FEFO when the item has an expiry date, else FIFO** (per-industry setting); routing templates + industry drop-down, batch progress bars (order → steps → stock/client), QC → FIFO stock or ship direct, OEE / SPC / Pareto dashboards, camera video + vision-reject scrap, rack camera alerts, demo factory with 3 months of data | Run a batch end to end and watch the progress bar; trigger a vision reject; see the stock appear in the WMS |
 | 3 APS | v3.3.0 | planner (sort → fit), shifts / calendar / workers / machine rate settings, urgent re-plan with frozen window, late-risk flags, EM accept / reject | Add an urgent order and watch the plan change; check that nothing exceeds capacity |
-| 4 Agent + search | v3.4.0 | 4 agent jobs, DeepSeek + offline fallback, anonymiser, accept / reject log, bge-m3, vector + hybrid indexes, SOP ingest | Ask the agent "why is scrap up on Filling?"; search "leak line 2 last week"; remove the key and check the system still works |
+| 4 Agent + search | v3.4.0 | 4 agent jobs, DeepSeek + offline fallback, anonymiser, accept / reject log, keyword search index (vector / hybrid prepared, off), SOP ingest | Ask the agent "why is scrap up on Filling?"; search "leak line 2 last week"; remove the key and check the system still works |
 | 5 ERP + release | v3.5.0 | connector interface, mock SAP / Oracle (WO in, results out), Workday staff import, edge + cloud Docker files, install guide, troubleshooting guide | Import a mock ERP order, finish it, and see the result sent back; then you sign off → **git push** |
 
 ## 5. Noted for later (not in scope yet)
 - Camera live video (needs IS8500 firmware ≥ 5.6.0 for Web HMI, or another stream).
 - Stock data: the new ledger (`inventory`) is the source of truth; legacy GreaterWMS stock endpoints are read-only.
 - Pick **Azure or AWS** when the first client signs.
+- Choose an embedding source to switch on vector / hybrid search (small local model or online API).
 - Real SAP / Oracle credentials replace the mocks.
 - Digital scale over TCP/IP for fill weight.
 - Two-step login for PIC / EM.

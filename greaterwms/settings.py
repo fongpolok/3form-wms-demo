@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'mes.apps.MesConfig',
     'reports.apps.ReportsConfig',
     'inventory.apps.InventoryConfig',
+    'aps.apps.ApsConfig',
     'rest_framework',
     'django_filters',
     'corsheaders',
@@ -168,7 +169,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media').replace('\\', '/')
 SPECTACULAR_SETTINGS = {
     'TITLE': '3Form WMS / MES / APS',
     'DESCRIPTION': '3Form WMS API (agent-ready). Auth: Authorization: Bearer <token>',
-    'VERSION': '3.2.0',
+    'VERSION': '3.3.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
     'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead
