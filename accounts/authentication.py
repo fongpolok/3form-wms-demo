@@ -59,6 +59,8 @@ class TokenAuthentication(BaseAuthentication):
             session.last_seen = now
             session.save(update_fields=["last_seen"])
 
+        if account.role == Account.ROLE_AGENT and request.method not in ("GET", "HEAD", "OPTIONS"):
+            raise exceptions.PermissionDenied("This account is read-only.")
         tenant = Users.objects.filter(openid=account.tenant_openid, is_delete=False).first()
         if tenant is None:
             raise exceptions.AuthenticationFailed("Company profile missing for this account.")

@@ -18,6 +18,13 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
+# Behind the Caddy HTTPS proxy (edge box / cloud): trust its X-Forwarded-Proto header.
+if os.environ.get('DJANGO_BEHIND_PROXY') == 'True':
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+
 
 # Application definition
 
@@ -171,7 +178,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media').replace('\\', '/')
 SPECTACULAR_SETTINGS = {
     'TITLE': '3Form WMS / MES / APS',
     'DESCRIPTION': '3Form WMS API (agent-ready). Auth: Authorization: Bearer <token>',
-    'VERSION': '3.4.0',
+    'VERSION': '3.5.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
     'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead

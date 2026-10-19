@@ -1,6 +1,6 @@
 # 3Form WMS / MES / APS — Project Plan (agreed design)
 
-Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19. Phase 3 (v3.3.0) signed off 2026-10-19. Phase 4 (v3.4.0) signed off 2026-10-19.
+Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19. Phase 3 (v3.3.0) signed off 2026-10-19. Phase 4 (v3.4.0) signed off 2026-10-19. Phase 5 (v3.5.0) signed off 2026-10-19. All phases complete.
 Diagrams in this folder: `01-system-map.html`, `02-production-flow.html`, `03-version-timeline.html`.
 
 ---

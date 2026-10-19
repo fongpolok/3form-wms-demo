@@ -17,6 +17,7 @@ logger = logging.getLogger("app")
 COLLECTIONS = {
     "counters": [],
     "work_orders": [([("wo_id", ASCENDING)], {"unique": True}),
+                    ([("tenant_openid", ASCENDING), ("erp_ref", ASCENDING)], {}),
                     ([("status", ASCENDING), ("due_date", ASCENDING)], {})],
     "batches": [([("batch_id", ASCENDING)], {"unique": True}),
                 ([("wo_id", ASCENDING)], {}),
@@ -45,6 +46,11 @@ COLLECTIONS = {
     "agent_chats": [([("conversation_id", ASCENDING)], {"unique": True})],
     "llm_usage": [([("tenant_openid", ASCENDING), ("day", DESCENDING)], {})],
     "sop_documents": [([("sop_id", ASCENDING)], {"unique": True})],
+    "erp_inbox": [([("tenant_openid", ASCENDING), ("status", ASCENDING)], {}),
+                  ([("conn_id", ASCENDING), ("erp_ref", ASCENDING)], {})],
+    "erp_outbox": [([("wo_id", ASCENDING)], {"unique": True}),
+                   ([("tenant_openid", ASCENDING), ("status", ASCENDING), ("created_at", ASCENDING)], {})],
+    "erp_state": [],
     "rack_reports": [([("event_id", ASCENDING)], {"unique": True}),
                      ([("bin_name", ASCENDING), ("ts", DESCENDING)], {})],
 }

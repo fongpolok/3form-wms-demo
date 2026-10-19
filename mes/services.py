@@ -369,6 +369,8 @@ def finish_step(account, workstation_code, good_qty, event_id, device=None, clie
 def _complete_order_if_done(db, s, wo_id, now):
     if not db.batches.find_one({"wo_id": wo_id, "status": {"$ne": BATCH_DONE}}, session=s):
         db.work_orders.update_one({"wo_id": wo_id}, {"$set": {"status": WO_DONE, "finished_at": now}}, session=s)
+        from integrations.erp_sync import enqueue_result
+        enqueue_result(db, s, wo_id)          # ERP orders: result goes to the outbox
 
 
 def put_away(account, workstation_code, scanned_bin, event_id, device=None):

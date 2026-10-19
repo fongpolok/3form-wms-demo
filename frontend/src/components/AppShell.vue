@@ -41,6 +41,7 @@ const NAV = [
   { to: 'export', icon: 'download', label: 'nav.export', min: 'EM' },
   { to: 'sop', icon: 'list', label: 'nav.sop', min: 'EM' },
   { to: 'accounts', icon: 'people', label: 'nav.accounts', min: 'PIC' },
+  { to: 'erp-inbox', icon: 'download', label: 'nav.erpInbox', min: 'PIC' },
   { to: 'devices', icon: 'tablet', label: 'nav.devices', min: 'PIC' },
   { to: 'audit', icon: 'shield', label: 'nav.audit', min: 'PIC' },
   { to: 'settings', icon: 'gear', label: 'nav.settings', min: 'EM' },

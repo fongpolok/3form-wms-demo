@@ -144,7 +144,8 @@ def test_integration_secrets_are_encrypted_and_masked(people, clients):
     e = clients["pic"].post(f"{API}/integrations/erp", {"name": "SAP prod", "system": "SAP", "base_url": "https://sap.example",
                                                         "username": "svc", "secret": "Pa55word!"}, format="json").json()
     assert e["secret_hint"] == "••••ord!"
-    assert "Phase 5" in clients["pic"].post(f"{API}/integrations/erp/{e['id']}/test", {}, format="json").json()["last_test_result"]
+    tested = clients["pic"].post(f"{API}/integrations/erp/{e['id']}/test", {}, format="json").json()["last_test_result"]
+    assert tested.startswith("✕ Cannot reach")          # the test really connects (made-up address)
     assert clients["em"].get(f"{API}/integrations/erp").status_code == 403
     assert clients["pic"].put(f"{API}/integrations/ai", {"base_url": "http://insecure"}, format="json").status_code == 400
 
@@ -170,3 +171,15 @@ def test_alarm_wakes_the_agent(people):
     from inventory.alerts import raise_alert
     raise_alert(people["pic"].tenant_openid, "SPC_OUT_OF_CONTROL", "SPC alarm: Fill weight", dedupe_key="spc:x")
     assert mongo.db().agent_state.find_one({"_id": people["pic"].tenant_openid})["pending"] is True
+
+
+def test_system_and_api_accounts_cannot_sign_in_at_a_workstation(people, clients):
+    from accounts import services as acc
+    from integrations.erp_sync import system_account
+    sysacct = system_account(people["pic"].tenant_openid)
+    key = clients["pic"].post(f"{API}/integrations/api-keys", {"name": "x"}, format="json").json()
+    from accounts.models import ApiKey
+    api_acct = ApiKey.objects.get(pk=key["id"]).account
+    for staff_id in (sysacct.staff_id, api_acct.staff_id):
+        with pytest.raises(acc.LoginError):
+            acc.worker_login(staff_id, people["device_token"])

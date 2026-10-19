@@ -66,7 +66,7 @@ async function create() {
           <td class="mono">{{ w.wo_id }}
             <span v-if="w.special_urgent" class="pill pill-alarm"><Icon name="alert" :size="12" /> {{ t('progress.urgent') }}</span></td>
           <td>{{ w.product_name || w.product_code }}</td><td>{{ w.client }}</td><td>{{ w.qty }}</td><td>{{ w.due_date }}</td>
-          <td>{{ w.ship_mode === 'stock' ? t('wo.stock') : t('wo.direct') }}</td><td>{{ w.source }}</td>
+          <td>{{ w.ship_mode === 'stock' ? t('wo.stock') : t('wo.direct') }}</td><td>{{ w.source }}<div v-if="w.erp_ref" class="muted short mono">{{ w.erp_system }} {{ w.erp_ref }}</div></td>
           <td><span v-if="w.status === 'waiting_material'" class="pill pill-warn" :title="w.shortages.map((s) => `${s.goods_code} -${s.short}`).join(', ')">
             <Icon name="alert" :size="12" /> {{ t('wo.waitingMaterial') }}</span>
             <span v-else>{{ t(`wo.status.${w.status}`) }}</span>

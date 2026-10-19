@@ -1,0 +1,10 @@
+# Cloud VM. SITE_ADDRESS = a real domain pointing at the VM (e.g. wms.client.com).
+# Caddy gets and renews a Let's Encrypt certificate automatically (ports 80 + 443 must be open).
+{
+	email {$ACME_EMAIL}
+}
+{$SITE_ADDRESS} {
+	encode gzip
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy app:8008
+}

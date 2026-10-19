@@ -66,8 +66,9 @@ def worker_login(staff_id, raw_device_token, ip=""):
     device = device_from_token(raw_device_token)
     if device is None:
         raise LoginError("Device not authorised. Ask the PIC to register this workstation.")
-    account = Account.objects.filter(tenant_openid=device.tenant_openid, staff_id=str(staff_id).strip(),
-                                     is_active=True).first()
+    # Only people can sign in at a workstation: never API-key or system (ERP connector) accounts.
+    account = Account.objects.filter(tenant_openid=device.tenant_openid, staff_id=str(staff_id).strip(), is_active=True,
+                                     role__in=[Account.ROLE_WORKER, Account.ROLE_EM, Account.ROLE_PIC]).first()
     if account is None:
         logger.info("Unknown staff ID %r on device %s", staff_id, device)
         raise LoginError("Staff ID not found.")

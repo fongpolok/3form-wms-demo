@@ -1,0 +1,54 @@
+# 3Form WMS core on a cloud VM (Azure / AWS, Ubuntu Server 24.04 LTS).
+# The factory runs deploy/site/docker-compose.site.yml (gateway) and reaches this VM over WireGuard.
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.cloud.yml up -d --build
+name: threeform-cloud
+x-app: &app
+  build: { context: .., dockerfile: deploy/Dockerfile }
+  image: 3form-wms:${APP_VERSION:-3.5.0}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    MONGO_URI: mongodb://mongo:27017/?directConnection=true
+    DJANGO_BEHIND_PROXY: "True"
+  volumes:
+    - ../config:/app/config:ro
+    - logs:/app/logs
+    - media:/app/media
+    - backups:/app/backups
+    - exports:/app/exports
+  depends_on: [postgres, mongo]
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { POSTGRES_DB: "${POSTGRES_DB}", POSTGRES_USER: "${POSTGRES_USER}", POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}", TZ: Asia/Hong_Kong }
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  mongo:
+    image: mongodb/mongodb-atlas-local:latest
+    restart: unless-stopped
+    hostname: mongo
+    volumes: [mongodata:/data/db, mongoconfig:/data/configdb, mongot:/data/mongot]
+
+  app:
+    <<: *app
+    command: ["web"]
+    ports:
+      - "${VPN_ADDRESS:-10.20.0.1}:8008:8008"     # gateway traffic: ONLY on the WireGuard address, never public
+
+  scheduler:
+    <<: *app
+    command: ["scheduler"]
+
+  caddy:                   # public HTTPS with an automatic certificate for SITE_ADDRESS (a real domain)
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: { SITE_ADDRESS: "${SITE_ADDRESS}", ACME_EMAIL: "${ACME_EMAIL}" }
+    volumes: [./caddy/Caddyfile.cloud:/etc/caddy/Caddyfile:ro, caddydata:/data]
+    depends_on: [app]
+
+volumes: { pgdata: {}, mongodata: {}, mongoconfig: {}, mongot: {}, logs: {}, media: {}, backups: {}, exports: {}, caddydata: {} }

@@ -1,4 +1,4 @@
-# 3Form WMS: start, test and troubleshoot (v3.4.0)
+# 3Form WMS: start, test and troubleshoot (v3.5.0)
 
 ## 1. First-time setup (once per computer)
 
@@ -93,6 +93,15 @@ Two macOS details that matter:
 - **Schedule:** `agent_run` hourly at :07, and `agent_run --if-pending` every 5 minutes (after alarms).
 - **API keys for outside AI tools:** Settings → Integrations → Create key. Send the header `Authorization: Api-Key <key>`; access is GET only.
 - **Backups:** keep `INTEGRATION_KEY` in `.env` safe. If you lose it, stored keys and ERP passwords must be re-entered.
+
+## 5d. ERP (SAP / Oracle / Workday)
+
+- **Add connections:** Settings → Integrations → ERP connections (address, sign-in, plant / company code). Press **Test**.
+- **Mapping:** the client's own field names go in `config/settings.yaml → erp.sap / erp.oracle / erp.workday`.
+- **Problem orders:** the ERP Inbox (PIC). Results waiting to go back show at the bottom of the same page.
+- **Try it without a real ERP:** run `python tools/mock_erp.py --port 8090`, then add a connection with address `http://127.0.0.1:8090`, user `mock`, password `mock123`.
+- **Automatic sync:** on the Mac, press "Sync now" (or run `manage.py erp_sync --force`). In Docker the scheduler runs it every 5 minutes.
+- **Production install** (edge box / cloud): see `deploy/README.md`.
 
 ## 6. Troubleshooting
 

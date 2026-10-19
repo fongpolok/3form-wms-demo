@@ -2,9 +2,9 @@ name: Security Scan
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ master, main ]
   schedule:
     # Run security scans daily at 2 AM UTC
     - cron: '0 2 * * *'
@@ -19,10 +19,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.11'
 
     - name: Install security scanning tools
       run: |
@@ -42,7 +42,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '16'
+        node-version: '20'
         cache: 'npm'
         cache-dependency-path: ./frontend/package-lock.json
 
@@ -57,14 +57,14 @@ jobs:
         npm audit --audit-level=moderate
 
     - name: Upload security scan reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-scan-reports
         path: |
           safety-report.json
           pip-audit-report.json
-          templates/npm-audit-report.json
+          frontend/npm-audit-report.json
 
   code-security-scan:
     name: Code Security Analysis
@@ -75,10 +75,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.11'
 
     - name: Install code security tools
       run: |
@@ -88,12 +88,12 @@ jobs:
     - name: Run Bandit security linter for Python
       run: |
         bandit -r . \
-          --exclude ./venv,./env,./migrations,./static,./media,./app/src-cordova \
+          --exclude ./venv,./env,./migrations,./static,./media \
           --format json \
           --output bandit-security-report.json || true
         echo "=== Bandit Security Report ==="
         bandit -r . \
-          --exclude ./venv,./env,./migrations,./static,./media,./app/src-cordova \
+          --exclude ./venv,./env,./migrations,./static,./media \
           --severity-level medium
 
     - name: Run Semgrep security analysis
@@ -115,7 +115,7 @@ jobs:
           .
 
     - name: Upload code security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: code-security-reports
@@ -149,7 +149,7 @@ jobs:
           --exclude-paths=.github/trufflehog-exclude.txt
 
     - name: Upload secrets scan report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: secrets-scan-report
@@ -170,24 +170,19 @@ jobs:
 
     - name: Build Docker image for scanning
       run: |
-        if [ -f "Dockerfile" ]; then
-          docker build -t greaterwms-security-scan .
-        else
-          echo "No Dockerfile found, skipping Docker security scan"
-          exit 0
-        fi
+        docker build -f deploy/Dockerfile -t threeform-security-scan .
 
     - name: Run Trivy vulnerability scanner
       if: success()
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'greaterwms-security-scan'
+        image-ref: 'threeform-security-scan'
         format: 'sarif'
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results
       if: success()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: docker-security-scan
         path: trivy-results.sarif
@@ -200,7 +195,7 @@ jobs:
 
     steps:
     - name: Download all security reports
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: security-reports
 

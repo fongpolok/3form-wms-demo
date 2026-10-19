@@ -1,0 +1,10 @@
+# Cloud VM: /etc/wireguard/wg0.conf   (sudo apt install wireguard; wg genkey | tee core.key | wg pubkey > core.pub)
+[Interface]
+Address = 10.20.0.1/24
+ListenPort = 51820
+PrivateKey = <contents of core.key>
+
+[Peer]
+# Factory site box
+PublicKey = <contents of site.pub>
+AllowedIPs = 10.20.0.2/32

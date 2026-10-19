@@ -1,0 +1,10 @@
+# Edge box. SITE_ADDRESS = the box's name or IP on the factory network, e.g. wms.factory.local
+# Default: Caddy's own internal certificate (tablets must trust Caddy's root CA once).
+# With the company's certificate: put cert.pem + key.pem in deploy/certs/ and use the second "tls" line.
+{$SITE_ADDRESS} {
+	tls internal
+	# tls /certs/cert.pem /certs/key.pem
+	encode gzip
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy app:8008
+}

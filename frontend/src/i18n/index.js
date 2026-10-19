@@ -5,6 +5,7 @@ import zhHant from './zh-hant.js'
 import phase2 from './phase2.js'
 import phase3 from './phase3.js'
 import phase4 from './phase4.js'
+import phase5 from './phase5.js'
 
 function merge(base, extra) {
   const out = { ...base }
@@ -18,8 +19,8 @@ export const i18n = createI18n({
   legacy: false,
   locale: storage.local.get('lang') || 'en',
   fallbackLocale: 'en',
-  messages: { en: [phase2.en, phase3.en, phase4.en].reduce(merge, en),
-              'zh-hant': [phase2['zh-hant'], phase3['zh-hant'], phase4['zh-hant']].reduce(merge, zhHant) },
+  messages: { en: [phase2.en, phase3.en, phase4.en, phase5.en].reduce(merge, en),
+              'zh-hant': [phase2['zh-hant'], phase3['zh-hant'], phase4['zh-hant'], phase5['zh-hant']].reduce(merge, zhHant) },
 })
 
 export function setLang(code) {

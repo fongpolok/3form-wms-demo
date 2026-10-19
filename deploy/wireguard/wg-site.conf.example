@@ -1,0 +1,11 @@
+# Factory site box: /etc/wireguard/wg0.conf   (wg genkey | tee site.key | wg pubkey > site.pub)
+[Interface]
+Address = 10.20.0.2/24
+PrivateKey = <contents of site.key>
+
+[Peer]
+# Cloud VM
+PublicKey = <contents of core.pub>
+Endpoint = <cloud VM public IP or name>:51820
+AllowedIPs = 10.20.0.1/32
+PersistentKeepalive = 25

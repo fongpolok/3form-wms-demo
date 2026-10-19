@@ -2,279 +2,70 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ main, master, develop ]
-
-env:
-  PYTHON_VERSION: '3.9'
-  NODE_VERSION: '16'
-  DJANGO_SETTINGS_MODULE: 'greaterwms.settings'
+    branches: [ master, main ]
 
 jobs:
-  python-quality:
-    name: Python Code Quality
+  tests:
+    name: Tests (PostgreSQL + MongoDB Atlas Local)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
     services:
       postgres:
-        image: postgres:13
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: greaterwms_test
+        image: postgres:16-alpine
+        env: { POSTGRES_DB: threeform_wms, POSTGRES_USER: threeform, POSTGRES_PASSWORD: ci-password }
+        ports: ["5433:5432"]
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
+          --health-cmd "pg_isready -U threeform" --health-interval 10s --health-timeout 5s --health-retries 10
+      mongo:
+        image: mongodb/mongodb-atlas-local:latest
+        ports: ["27032:27017"]
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-secret
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5433"
+      POSTGRES_DB: threeform_wms
+      POSTGRES_USER: threeform
+      POSTGRES_PASSWORD: ci-password
+      MONGO_URI: mongodb://127.0.0.1:27032/?directConnection=true
+      GATEWAY_TOKEN: test-gateway-token
+      INTEGRATION_KEY: 8Wv5bQm1b2t2kNfKJ6p4bY0rC3l2y1VJr8H0h9Pq7-s=
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Wait for MongoDB (replica set ready)
+        run: |
+          python - <<'PY'
+          import time, pymongo
+          c = pymongo.MongoClient("mongodb://127.0.0.1:27032/?directConnection=true", serverSelectionTimeoutMS=2000)
+          for _ in range(60):
+              try:
+                  c.admin.command("ping"); print("mongo up"); break
+              except Exception:
+                  time.sleep(3)
+          PY
+      - run: python manage.py check
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python -m pytest -p no:cacheprovider
 
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install flake8 pytest pytest-django coverage
-
-    - name: Run Django system checks
-      run: |
-        python manage.py check --deploy
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/greaterwms_test
-
-    - name: Check for pending migrations
-      run: |
-        python manage.py makemigrations --check --dry-run
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/greaterwms_test
-
-    - name: Run migrations
-      run: |
-        python manage.py migrate
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/greaterwms_test
-
-    - name: Python linting with flake8
-      run: |
-        # Stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Exit-zero treats all errors as warnings. Max line length for GreaterWMS
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=100 --exclude=migrations,venv,env --statistics
-
-    - name: Run Django tests
-      run: |
-        python manage.py test --verbosity=2
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/greaterwms_test
-
-    - name: Generate coverage report
-      run: |
-        coverage run --source='.' manage.py test
-        coverage xml
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/greaterwms_test
-
-    - name: Upload coverage to artifacts
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: python-coverage
-        path: coverage.xml
-
-  frontend-quality:
-    name: Frontend Code Quality
+  frontend:
+    name: Front end build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: ./templates
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
 
-    - name: Set up Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: ./templates/package-lock.json
-
-    - name: Install frontend dependencies
-      run: npm ci
-
-    - name: Frontend linting
-      run: npm run lint
-
-    - name: Build frontend
-      run: |
-        # Check if build script exists, if not just verify dependencies
-        if npm run | grep -q "build"; then
-          npm run build
-        else
-          echo "No build script found, verifying Quasar setup..."
-          npx quasar info || echo "Quasar CLI check completed"
-        fi
-
-    - name: Frontend tests
-      run: |
-        # Run tests if available, otherwise just pass
-        npm test
-
-    - name: Upload frontend artifacts
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: frontend-dist
-        path: ./templates/dist/
-
-  docker-build:
-    name: Docker Build Test
+  docker:
+    name: Docker image builds
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [python-quality, frontend-quality]
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      run: |
-        # Test Docker build if Dockerfile exists
-        if [ -f "Dockerfile" ]; then
-          docker build -t greaterwms-test .
-        else
-          echo "No Dockerfile found, testing docker-compose configuration..."
-        fi
-
-    - name: Test Docker Compose configuration
-      run: |
-        docker-compose -f docker-compose.yml config
-
-    - name: Test CI Docker Compose
-      run: |
-        if [ -f "docker-compose.ci.yml" ]; then
-          docker-compose -f docker-compose.ci.yml config
-        else
-          echo "No CI-specific docker-compose found, using main config"
-        fi
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [python-quality, frontend-quality]
-    if: github.event_name == 'pull_request'
-
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: greaterwms_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Run integration tests
-      run: |
-        python manage.py migrate
-        python manage.py test --tag=integration --verbosity=2
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/greaterwms_test
-
-  security-check:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install security tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install safety bandit
-
-    - name: Check Python dependencies for vulnerabilities
-      run: |
-        safety check -r requirements.txt
-
-    - name: Run Bandit security linter
-      run: |
-        bandit -r . -x ./venv,./env,./migrations,./static -f json -o bandit-report.json || true
-        bandit -r . -x ./venv,./env,./migrations,./static
-
-    - name: Upload security reports
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: security-reports
-        path: |
-          bandit-report.json
-
-  deployment-readiness:
-    name: Deployment Readiness
-    runs-on: ubuntu-latest
-    needs: [python-quality, frontend-quality, docker-build, security-check]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Deployment readiness check
-      run: |
-        echo "✅ All quality gates passed"
-        echo "✅ Security scans completed"
-        echo "✅ Docker build successful"
-        echo "🚀 Ready for deployment"
-
-    - name: Notify deployment readiness
-      run: |
-        echo "::notice::All CI checks passed - deployment ready"
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/Dockerfile -t 3form-wms:ci .

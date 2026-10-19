@@ -26,3 +26,8 @@ graphify-out/
 exports/
 backups/
 frontend/dist/
+
+# deployment secrets
+deploy/.env
+deploy/site/.env
+deploy/certs/

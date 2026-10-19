@@ -1,0 +1,65 @@
+# 3Form WMS on ONE factory edge box (Ubuntu Server 24.04 LTS, x86).
+#   cp deploy/edge.env.example deploy/.env   (fill it in)
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.edge.yml up -d --build
+name: threeform-edge
+x-app: &app
+  build: { context: .., dockerfile: deploy/Dockerfile }
+  image: 3form-wms:${APP_VERSION:-3.5.0}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    MONGO_URI: mongodb://mongo:27017/?directConnection=true
+    DJANGO_BEHIND_PROXY: "True"
+  volumes:
+    - ../config:/app/config:ro          # edit settings.yaml on the box, then restart
+    - logs:/app/logs
+    - media:/app/media
+    - backups:/app/backups
+    - exports:/app/exports
+  depends_on: [postgres, mongo]
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment: { POSTGRES_DB: "${POSTGRES_DB}", POSTGRES_USER: "${POSTGRES_USER}", POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}", TZ: Asia/Hong_Kong }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"], interval: 10s, retries: 5 }
+
+  mongo:
+    image: mongodb/mongodb-atlas-local:latest     # MongoDB + Atlas Search on the box
+    restart: unless-stopped
+    hostname: mongo
+    volumes: [mongodata:/data/db, mongoconfig:/data/configdb, mongot:/data/mongot]
+
+  app:
+    <<: *app
+    command: ["web"]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8008/api/v1/health')"], interval: 30s, retries: 5, start_period: 90s }
+
+  scheduler:
+    <<: *app
+    command: ["scheduler"]
+
+  gateway:                 # scanners + cameras on the factory network
+    <<: *app
+    command: ["gateway"]
+    environment:
+      GATEWAY_FORWARD_URL: http://app:8008/api/v1/gateway
+    ports:
+      - "${GATEWAY_SERVER_PORTS:-55300-55310}:${GATEWAY_SERVER_PORTS:-55300-55310}"   # only for devices in mode: server
+
+  caddy:                   # HTTPS for tablets and browsers
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: { SITE_ADDRESS: "${SITE_ADDRESS}" }
+    volumes:
+      - ./caddy/Caddyfile.edge:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro                         # company certificate (optional), see deploy/README.md
+      - caddydata:/data
+    depends_on: [app]
+
+volumes: { pgdata: {}, mongodata: {}, mongoconfig: {}, mongot: {}, logs: {}, media: {}, backups: {}, exports: {}, caddydata: {} }

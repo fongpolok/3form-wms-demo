@@ -12,6 +12,7 @@ const pages = [
   { path: 'advisor', component: () => import('./views/manager/AdvisorView.vue'), min: 'EM' },
   { path: 'search', component: () => import('./views/manager/SearchView.vue'), min: 'EM' },
   { path: 'sop', component: () => import('./views/pic/SopView.vue'), min: 'EM' },
+  { path: 'erp-inbox', component: () => import('./views/pic/ErpInboxView.vue'), min: 'PIC' },
   { path: 'calendar', component: () => import('./views/pic/CalendarView.vue'), min: 'EM' },
   { path: 'workstations', component: () => import('./views/manager/WorkstationsView.vue'), min: 'EM' },
   { path: 'products', component: () => import('./views/manager/ProductsView.vue'), min: 'EM' },

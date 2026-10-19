@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-10-19 - Phase 5 ERP connectors + deployment (signed off)
+
+### Added
+- **ERP connectors** (`integrations/connectors`): SAP (modelled on S/4HANA OData production orders / confirmations),
+  Oracle (modelled on Fusion REST work orders), and Workday (staff report). Field names are per-client settings
+  (`config/settings.yaml → erp`). "Test" really connects.
+- **Orders in** every 15 min: valid orders become work orders (ERP number kept, split into 1,000-piece batches,
+  never imported twice). Unknown product / bad quantity / bad date goes to the **ERP Inbox** (PIC fixes and
+  imports, or rejects).
+- **Results out:** a finished ERP order puts good qty, scrap by reason, batch IDs, shipments and finish time in an
+  **outbox**. Sending is retried, and an alert fires after 60 min.
+- **Workday staff import** (daily): creates, renames and disables WORKER accounts only. PIC / EM are never touched.
+- `tools/mock_erp.py`: a mock SAP / Oracle / Workday server for tests and demos.
+- **Deployment:**
+  - `deploy/Dockerfile` (one image: web, scheduler, gateway)
+  - `docker-compose.edge.yml` (everything on one factory box)
+  - `docker-compose.cloud.yml` (Azure / AWS VM) + `site/docker-compose.site.yml` (factory gateway over WireGuard)
+  - Caddy HTTPS, `install_edge.sh`, WireGuard templates
+  - `deploy/README.md`: edge, Azure step by step, AWS appendix, security checklist
+- **Scheduler** container (`manage.py scheduler`) replaces crontab: backup, Excel, daily checks, planner watch,
+  agent, ERP sync.
+- `backup_databases` (pg_dump 16 + MongoDB as gzipped BSON) / `restore_mongo`; `create_pic` for the first real
+  login on a client system.
+- **GitHub CI:** tests against PostgreSQL 16 + MongoDB Atlas Local, front-end build and Docker build. The security
+  scan is updated (Python 3.11, Node 20, artifact v4).
+- New README with Apache 2.0 credit to GreaterWMS (`NOTICE`).
+- 80 automated tests (10 new).
+
+### Security
+- Staff-ID sign-in is limited to Worker / EM / PIC accounts. AGENT (API-key / system) accounts are read-only on
+  every route.
+
+### Removed
+- Old GreaterWMS deployment files (`Dockerfile`, `Dockerfile.ci`, `docker-compose*.yml`, `nginx.conf`,
+  `supervisord.conf`, start scripts, `static_new/`), the old README translations and stray notes.
+
 ## [3.4.0] - 2026-10-19 - Phase 4 AI agent + keyword search (signed off)
 
 ### Added

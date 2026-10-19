@@ -1,0 +1,18 @@
+# Factory side when the core runs in the cloud: only the site gateway (scanners + cameras).
+# It reaches the cloud VM through WireGuard (installed on this box; see deploy/README.md).
+#   docker compose --env-file deploy/site/.env -f deploy/site/docker-compose.site.yml up -d
+name: threeform-site
+services:
+  gateway:
+    image: 3form-wms:${APP_VERSION:-3.5.0}        # same image, built here or pulled from your registry
+    build: { context: ../.., dockerfile: deploy/Dockerfile }
+    command: ["gateway"]
+    restart: unless-stopped
+    network_mode: host                            # sees the factory LAN and the WireGuard tunnel
+    env_file: .env
+    environment:
+      GATEWAY_FORWARD_URL: http://${VPN_CORE_ADDRESS:-10.20.0.1}:8008/api/v1/gateway
+    volumes:
+      - ../../config:/app/config:ro
+      - outbox:/app/logs                          # offline outbox + scanner/camera logs survive restarts
+volumes: { outbox: {} }

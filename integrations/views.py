@@ -17,6 +17,10 @@ def _err(msg, code=400):
     return Response({"detail": str(msg)}, status=code)
 
 
+def _https_or_local(url):
+    return url.startswith("https://") or url.startswith(("http://127.0.0.1", "http://localhost"))
+
+
 def _ai_payload(row):
     key = secrets.decrypt(row.api_key_enc) if row and row.api_key_enc else ""
     import os
@@ -114,8 +118,8 @@ class ErpView(APIView):
                 setattr(c, f, str(d[f]).strip())
         if not c.name or not c.system:
             return _err("Name and system are required.")
-        if c.base_url and not c.base_url.startswith("https://"):
-            return _err("The ERP address must start with https://")
+        if c.base_url and not _https_or_local(c.base_url):
+            return _err("The ERP address must start with https:// (http only for 127.0.0.1 / localhost tests).")
         if "enabled" in d:
             c.enabled = bool(d["enabled"])
         if d.get("secret"):
@@ -139,13 +143,52 @@ class ErpTestView(APIView):
     permission_classes = [IsPIC]
 
     def post(self, request, pk):
+        from .connectors import ErpError, for_connection
         c = ErpConnection.objects.filter(pk=pk, tenant_openid=request.user.tenant_openid).first()
         if not c:
             return _err("Connection not found.", 404)
+        try:
+            result = "✓ " + for_connection(c).ping()
+        except (ErpError, secrets.SecretError) as exc:
+            result = f"✕ {exc}"
         c.last_test_at = timezone.now()
-        c.last_test_result = "Saved. The live ERP connector (work orders in / results out) arrives in Phase 5."
+        c.last_test_result = result[:200]
         c.save(update_fields=["last_test_at", "last_test_result"])
         return Response(_erp_payload(c))
+
+
+class ErpSyncView(APIView):
+    """'Sync now' button: pull orders / import staff / send results immediately."""
+    permission_classes = [IsPIC]
+
+    def post(self, request):
+        from .erp_sync import sync_all
+        res = sync_all(force=True)
+        return Response({"results": [{"connection": n, "result": {k: v if isinstance(v, (int, str)) else len(v)
+                                                                   for k, v in r.items()}} for n, r in res]})
+
+
+class ErpInboxView(APIView):
+    permission_classes = [IsPIC]
+
+    def get(self, request):
+        from core import mongo
+        status = request.query_params.get("status", "pending")
+        rows = list(mongo.db().erp_inbox.find({"tenant_openid": request.user.tenant_openid, "status": status},
+                                              {"_id": 0, "raw": 0}).sort("received_at", -1).limit(200))
+        out = list(mongo.db().erp_outbox.find({"tenant_openid": request.user.tenant_openid},
+                                              {"_id": 0}).sort("created_at", -1).limit(50))
+        return Response({"inbox": rows, "outbox": out})
+
+    def post(self, request):
+        from .connectors import ErpError
+        from .erp_sync import inbox_decide
+        d = request.data
+        try:
+            wo_id = inbox_decide(request.user, d.get("erp_ref"), d.get("conn_id"), bool(d.get("approve")), d.get("edits"))
+        except ErpError as exc:
+            return _err(exc)
+        return Response({"wo_id": wo_id})
 
 
 class ApiKeysView(APIView):

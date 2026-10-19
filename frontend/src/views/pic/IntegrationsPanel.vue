@@ -74,7 +74,9 @@ async function revoke(k) { if (confirm(t('integrations.confirmRevoke', { name: k
 
     <!-- ERP connections -->
     <div class="block">
-      <div class="row"><h3 class="grow">{{ t('integrations.erp') }}</h3><button class="btn" @click="editErp(null)">{{ t('integrations.addErp') }}</button></div>
+      <div class="row"><h3 class="grow">{{ t('integrations.erp') }}</h3>
+        <RouterLink to="erp-inbox" class="btn">{{ t('nav.erpInbox') }}</RouterLink>
+        <button class="btn" @click="editErp(null)">{{ t('integrations.addErp') }}</button></div>
       <p class="muted small">{{ t('integrations.erpHelp') }}</p>
       <div v-if="erpForm" class="form edit">
         <label class="field"><span>{{ t('integrations.name') }}</span><input v-model="erpForm.name" required /></label>

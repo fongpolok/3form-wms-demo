@@ -41,6 +41,7 @@ class Account(models.Model):
     legacy_staff_pk = models.BigIntegerField(null=True, blank=True,
                                              help_text="staff.ListModel id, sent as the 'operator' header to WMS endpoints")
     is_active = models.BooleanField(default=True)
+    source = models.CharField(max_length=20, default="manual")   # manual | workday | system
     failed_logins = models.IntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

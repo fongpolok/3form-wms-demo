@@ -151,3 +151,39 @@ search:
   vector_dimensions: 1024
   sop_chunk_chars: 900           # SOP text is split into passages of about this size
   sop_max_upload_mb: 20
+
+erp:
+  poll_minutes: 15               # how often released orders are pulled from each enabled ERP connection
+  outbox_alert_minutes: 60       # alert when results could not be sent for this long
+  workday_daily_hour: 3          # staff import time (Workday connections)
+  timeout_seconds: 30
+  default_batch_size: 1000        # imported orders are split into batches of at most this many pieces
+  # Field names per ERP. Modelled on SAP S/4HANA OData (production orders) and Oracle Fusion
+  # REST (work orders). Adjust per client: only this mapping changes, not the code.
+  sap:
+    orders_path: "/sap/opu/odata/sap/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder_2"
+    orders_filter: "OrderIsReleased eq 'X'"
+    results_path: "/sap/opu/odata/sap/API_PROD_ORDER_CONFIRMATION_2_SRV/ProdnOrdConf2"
+    fields: { erp_ref: "ManufacturingOrder", product_code: "Material", qty: "TotalQuantity",
+              due_date: "MfgOrderPlannedEndDate", client: "SalesOrderCustomer", priority: "MfgOrderPriority" }
+  oracle:
+    orders_path: "/fscmRestApi/resources/11.13.18.05/workOrders"
+    orders_query: "WorkOrderStatusCode=RELEASED"
+    results_path: "/fscmRestApi/resources/11.13.18.05/workOrderOperationTransactions"
+    fields: { erp_ref: "WorkOrderNumber", product_code: "ItemNumber", qty: "PlannedStartQuantity",
+              due_date: "PlannedCompletionDate", client: "CustomerName", priority: "WorkOrderPriority" }
+  workday:
+    staff_path: "/ccx/service/customreport2/staff_list"
+    fields: { staff_id: "Employee_ID", name: "Worker", active: "Active" }
+
+scheduler:
+  # Used by `manage.py scheduler` inside Docker (edge box / cloud). On the Mac, crontab does the same.
+  # every_minutes: N   |   hourly_at_minute: M   |   daily_at: "HH:MM"   (site time zone)
+  jobs:
+    - { name: "backup",          command: "backup_databases",  daily_at: "02:00" }
+    - { name: "excel export",    command: "export_production", daily_at: "02:05" }
+    - { name: "daily checks",    command: "daily_checks",      daily_at: "06:00" }
+    - { name: "planner watch",   command: "aps_watch",         every_minutes: 5 }
+    - { name: "agent (hourly)",  command: "agent_run",         hourly_at_minute: 7 }
+    - { name: "agent (alarms)",  command: "agent_run", args: ["--if-pending"], every_minutes: 5 }
+    - { name: "erp sync",        command: "erp_sync",          every_minutes: 5 }
