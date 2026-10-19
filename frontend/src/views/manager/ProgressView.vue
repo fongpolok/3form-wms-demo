@@ -9,6 +9,8 @@ import Icon from '../../components/Icon.vue'
 
 const { t } = useI18n()
 const { data, error, loading, reload } = usePolled(() => get('/api/v1/mes/progress'), 10000)
+const advice = usePolled(() => get('/api/v1/agent/advice?status=open'), 60000)
+const topAdvice = computed(() => (advice.data.value?.items || []).slice(0, 3))
 const today = new Date().toISOString().slice(0, 10)
 
 const summary = computed(() => {
@@ -38,6 +40,11 @@ const summary = computed(() => {
     </div>
   </div>
 
+  <section v-if="topAdvice.length" class="card advice">
+    <div class="row"><h2 class="grow">{{ t('nav.advisor') }}</h2><RouterLink to="advisor" class="btn">{{ t('advisor.seeAll') }}</RouterLink></div>
+    <ul><li v-for="a in topAdvice" :key="a.advice_id"><span :class="['pill', a.severity === 'alarm' ? 'pill-alarm' : a.severity === 'warn' ? 'pill-warn' : 'pill-info']">
+      <Icon name="alert" :size="12" /> {{ t(`advisor.jobs.${a.job}`) }}</span> {{ a.title }}</li></ul>
+  </section>
   <p v-if="data && !data.length" class="muted">{{ t('common.none') }}</p>
   <div class="stack">
     <article v-for="wo in data" :key="wo.wo_id" class="card wo">
@@ -73,5 +80,8 @@ const summary = computed(() => {
 .pct { font-size: 2rem; font-weight: 700; color: var(--accent); }
 .pct small { font-size: 1rem; }
 .wo { display: grid; gap: 16px; }
+.advice { margin-bottom: 16px; display: grid; gap: 8px; }
+.advice h2 { font-size: var(--text-lg); }
+.advice ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 @media (max-width: 640px) { .summary { grid-template-columns: repeat(2, 1fr); } }
 </style>

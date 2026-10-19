@@ -8,6 +8,7 @@ from accounts import audit
 from .models import Alert
 
 logger = logging.getLogger("app")
+WAKE_AGENT = {"MATERIAL_SHORTAGE", "SPC_OUT_OF_CONTROL", "RACK_MISMATCH", "PLAN_CHANGED"}   # agent runs within 5 min
 
 
 def raise_alert(tenant, kind, title, detail="", ref="", severity="warn", dedupe_key="", is_demo=False):
@@ -16,6 +17,9 @@ def raise_alert(tenant, kind, title, detail="", ref="", severity="warn", dedupe_
     a = Alert.objects.create(tenant_openid=tenant, kind=kind, severity=severity, title=title, detail=detail, ref=ref,
                              dedupe_key=dedupe_key, is_demo=is_demo)
     logger.warning("ALERT %s [%s] %s - %s", kind, severity, title, detail)
+    if kind in WAKE_AGENT:
+        from agent.jobs import mark_pending
+        mark_pending(tenant, f"{kind}: {title}")
     return a
 
 

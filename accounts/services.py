@@ -102,3 +102,31 @@ def set_device_active(pic, device, active, request=None):
         Session.objects.filter(device=device, revoked=False).update(revoked=True)
     audit.record(pic, "device.activate" if active else "device.revoke", "device", device.pk,
                  before=before, after={"is_active": active}, request=request)
+
+
+@transaction.atomic
+def create_api_key(pic, name, request=None):
+    """New read-only key. The raw key is returned once; only its hash is stored."""
+    from .models import ApiKey
+    n = Account.objects.filter(tenant_openid=pic.tenant_openid, role=Account.ROLE_AGENT).count() + 1
+    acct = Account.objects.create(tenant_openid=pic.tenant_openid, staff_id=f"API-{n:03d}-{new_raw_token()[:4]}",
+                                  display_name=f"API: {name}", role=Account.ROLE_AGENT)
+    raw = "tfk_" + new_raw_token()
+    key = ApiKey.objects.create(account=acct, name=name, key_hash=hash_token(raw), key_hint=raw[-4:],
+                                created_by=pic.display_name)
+    audit.record(pic, "api_key.create", "api_key", key.pk, after={"name": name}, request=request)
+    return key, raw
+
+
+@transaction.atomic
+def revoke_api_key(pic, key_id, request=None):
+    from .models import ApiKey
+    key = ApiKey.objects.select_related("account").filter(pk=key_id, account__tenant_openid=pic.tenant_openid).first()
+    if key is None:
+        raise LoginError("API key not found.")
+    key.is_active = False
+    key.save(update_fields=["is_active"])
+    key.account.is_active = False
+    key.account.save(update_fields=["is_active"])
+    audit.record(pic, "api_key.revoke", "api_key", key.pk, after={"name": key.name}, request=request)
+    return key

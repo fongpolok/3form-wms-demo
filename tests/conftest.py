@@ -4,6 +4,7 @@ import uuid
 
 os.environ["MONGO_DB"] = f"threeform_test_{uuid.uuid4().hex[:8]}"
 os.environ["GATEWAY_TOKEN"] = "test-gateway-token"  # settings may have loaded .env already
+os.environ["DEEPSEEK_API_KEY"] = ""                # tests never call the real AI provider
 
 import pytest  # noqa: E402
 from django.contrib.auth.models import User  # noqa: E402

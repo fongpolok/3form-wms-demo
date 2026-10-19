@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-10-19 - Phase 4 AI agent + keyword search (signed off)
+
+### Added
+- **AI agent** (`agent` app), advisory and read-only: four jobs (work orders, production, stock take, inventory).
+  Each job computes its findings with plain arithmetic first; the AI then writes the advice in EN + 繁中.
+  Runs hourly (`agent_run`), on request ("Run now"), and within 5 minutes of a shortage / SPC / rack / plan-change
+  alarm (`agent_run --if-pending`). Advice that stops being true expires on its own.
+- **AI Advisor page:** advice cards with the numbers used, Accept / Reject + comment (recorded and audited, never acted
+  on automatically), and AI usage (calls and tokens per day).
+- **Ask-the-agent chat** (PIC + EM): the AI chains up to 5 read-only look-ups (orders, KPIs, scrap, SPC, stock,
+  material outlook, plan, counts, alerts, documents) and answers with the numbers and tools it used. Conversations are
+  saved, and a cut-off answer is retried without "thinking".
+- **Provider-neutral LLM client:** any OpenAI-compatible API. The default is DeepSeek `deepseek-v4-pro`
+  (`deepseek-chat` is deprecated by DeepSeek). Thinking is off for jobs and on for chat. There is a daily call cap,
+  token logging, and plain calculations whenever AI is off, missing or over the cap.
+- **Anonymiser:** client names → "Client A…", workers → "Worker 1…", prices / costs removed, company name hidden.
+  Names are restored locally in the answer. Each part can be switched off. **Final rule is still pending your decision.**
+- **Keyword search** (Atlas Search, English + 中文 via lucene.cjk) across SOPs, worker notes, work orders and advice,
+  with a search box in the top bar and a results page. The **vector + hybrid index is created but switched off**
+  (no embedding model, as decided).
+- **SOP Library (RAG)** page: the PIC uploads PDF / Word / Markdown / text, which is split into searchable passages
+  the agent can quote. It starts empty (no demo SOPs).
+- **Settings → Integrations** (PIC): AI provider (address, model, key, daily cap, on/off switch, chat thinking, Test),
+  **ERP connections** (SAP / Oracle / Workday / other: address, sign-in, encrypted secret; the live connector comes in
+  Phase 5), and **read-only API keys** for outside AI tools (new AGENT role: GET only, revocable, use counted).
+- Secrets are encrypted with `INTEGRATION_KEY` (Fernet) and only the last 4 characters are ever shown.
+- 70 automated tests (12 new). They use a fake AI and check that real names never reach the provider.
+
+### Fixed
+- Planner frozen window: an operation that starts "now" (rounded down to the 5-minute grid) is now frozen.
+
 ## [3.3.0] - 2026-10-19 - Phase 3 APS planner (signed off)
 
 ### Added

@@ -130,3 +130,24 @@ aps:
   late_buffer_hours: 4           # LATE RISK if finish > due date end-of-day minus this
   replan_on_stop_minutes: 30     # a machine stopped longer than this triggers a draft re-plan
   auto_replan: true              # re-plan automatically on new orders / material / long stops
+
+agent:
+  enabled: true                   # master switch; each company can also switch AI off in Settings
+  default_base_url: "https://api.deepseek.com"
+  default_model: "deepseek-v4-pro"
+  timeout_seconds: 90
+  max_tool_rounds: 5              # chat: how many data look-ups the AI may chain
+  job_max_tokens: 1200
+  chat_max_tokens: 6000           # includes the model's thinking
+  anonymise:                      # PENDING decision (2026-10-19): what is hidden before data leaves the site
+    clients: true
+    workers: true
+    prices: true
+    company: true
+  stale_minutes_for_rerun: 55     # hourly job run skips if a run happened within this many minutes
+
+search:
+  vector_enabled: false          # switched off until an embedding source is chosen (decision 2026-10-19)
+  vector_dimensions: 1024
+  sop_chunk_chars: 900           # SOP text is split into passages of about this size
+  sop_max_upload_mb: 20

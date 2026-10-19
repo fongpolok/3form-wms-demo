@@ -6,6 +6,7 @@ import { useSession } from '../../composables/session.js'
 import { pick } from '../../i18n/index.js'
 import { usePolled } from '../../composables/poll.js'
 import PageHead from '../../components/PageHead.vue'
+import IntegrationsPanel from './IntegrationsPanel.vue'
 
 const { t } = useI18n()
 const { data, error, reload } = usePolled(() => get('/api/v1/mes/settings'), 0)
@@ -32,6 +33,7 @@ async function setIndustry(code) {
     <p class="muted grow">{{ session.can('PIC') ? t('settings.industryHelp') : t('settings.industryPicOnly') }}</p>
     <p v-if="msg" class="notice notice-ok" role="status">{{ msg }}</p>
   </section>
+  <IntegrationsPanel v-if="session.can('PIC')" class="integrations" />
   <div v-if="data" class="grid">
     <section class="card stack">
       <h2>{{ t('settings.industry') }}: {{ pick(data.industry.label) }}</h2>
@@ -53,6 +55,7 @@ async function setIndustry(code) {
 
 <style scoped>
 .industry { margin-bottom: 16px; align-items: flex-end; }
+.integrations { margin-bottom: 16px; }
 .industry .field { width: 300px; }
 .grow { flex: 1; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }

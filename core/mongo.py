@@ -38,6 +38,13 @@ COLLECTIONS = {
                        ([("workstation", ASCENDING), ("ts", DESCENDING)], {})],
     "plans": [([("plan_id", ASCENDING)], {"unique": True}),
               ([("tenant_openid", ASCENDING), ("status", ASCENDING), ("created_at", DESCENDING)], {})],
+    "advice": [([("advice_id", ASCENDING)], {"unique": True}),
+               ([("tenant_openid", ASCENDING), ("status", ASCENDING), ("key", ASCENDING)], {})],
+    "agent_runs": [([("tenant_openid", ASCENDING), ("ts", DESCENDING)], {})],
+    "agent_state": [],
+    "agent_chats": [([("conversation_id", ASCENDING)], {"unique": True})],
+    "llm_usage": [([("tenant_openid", ASCENDING), ("day", DESCENDING)], {})],
+    "sop_documents": [([("sop_id", ASCENDING)], {"unique": True})],
     "rack_reports": [([("event_id", ASCENDING)], {"unique": True}),
                      ([("bin_name", ASCENDING), ("ts", DESCENDING)], {})],
 }

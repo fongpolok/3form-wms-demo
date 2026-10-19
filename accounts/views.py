@@ -69,7 +69,8 @@ class MeView(APIView):
     permission_classes = [IsWorkerOrAbove]
 
     def get(self, request):
-        return Response(_me_payload(request.user, request.tf_session.device))
+        session = getattr(request, "tf_session", None)
+        return Response(_me_payload(request.user, session.device if session else None))
 
 
 class CurrentDeviceView(APIView):

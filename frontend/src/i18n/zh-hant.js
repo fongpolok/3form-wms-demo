@@ -61,5 +61,5 @@ export default {
     thisDevice: '此裝置', lastSeen: '最後連線', otherDevice: '登記另一部裝置:把這個一次性代碼輸入該裝置',
   },
   audit: { title: '審計記錄', subtitle: '每項更改:誰、何時、舊值、新值。記錄不可修改。', who: '誰', when: '何時', what: '甚麼', before: '之前', after: '之後' },
-  settings: { title: '設定', subtitle: '請在伺服器修改 config/settings.yaml 然後重新啟動。此處只供查看。', industry: '行業', steps: '工序', scrapReasons: '報廢原因' },
+  settings: { title: '設定', subtitle: '行業及系統整合可在此更改。其他數值來自伺服器的 config/settings.yaml(下方只供查看)。', industry: '行業', steps: '工序', scrapReasons: '報廢原因' },
 }

@@ -1,7 +1,7 @@
 <script setup>
 // Layout for PIC and Engineering Manager: one-level sidebar + top bar.
 // Navigation items are filtered by role; the brand lives only in the logo tile.
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { LANGS, setLang } from '../i18n/index.js'
@@ -24,6 +24,7 @@ const NAV = [
   { to: 'progress', icon: 'chart', label: 'nav.progress', min: 'EM' },
   { to: 'plan', icon: 'list', label: 'nav.plan', min: 'EM' },
   { to: 'lean', icon: 'gauge', label: 'nav.lean', min: 'EM' },
+  { to: 'advisor', icon: 'people', label: 'nav.advisor', min: 'EM' },
   { to: 'workstations', icon: 'station', label: 'nav.workstations', min: 'EM' },
   { to: 'work-orders', icon: 'list', label: 'nav.workOrders', min: 'EM' },
   { to: 'calendar', icon: 'chart', label: 'nav.calendar', min: 'EM' },
@@ -38,6 +39,7 @@ const NAV = [
   { group: 'nav.gAdmin' },
   { to: 'alerts', icon: 'alert', label: 'nav.alerts', min: 'EM' },
   { to: 'export', icon: 'download', label: 'nav.export', min: 'EM' },
+  { to: 'sop', icon: 'list', label: 'nav.sop', min: 'EM' },
   { to: 'accounts', icon: 'people', label: 'nav.accounts', min: 'PIC' },
   { to: 'devices', icon: 'tablet', label: 'nav.devices', min: 'PIC' },
   { to: 'audit', icon: 'shield', label: 'nav.audit', min: 'PIC' },
@@ -45,6 +47,8 @@ const NAV = [
 ]
 const alerts = usePolled(() => get('/api/v1/alerts'), 20000)
 const alarmCount = computed(() => (alerts.data.value || []).length)
+const q = ref('')
+function search() { if (q.value.trim()) router.push({ path: `${base.value}/search`, query: { q: q.value.trim() } }) }
 const items = computed(() => NAV.filter((n) => n.group || session.can(n.min)))
 
 async function logout() {
@@ -78,6 +82,9 @@ async function logout() {
     <div class="main-col">
       <header class="top">
         <span v-if="!health.serverOk" class="pill pill-alarm"><Icon name="wifi" :size="16" /> {{ t('common.offline') }}</span>
+        <form class="topsearch" role="search" @submit.prevent="search">
+          <input v-model="q" type="search" :placeholder="t('search.placeholder')" :aria-label="t('common.search')" />
+        </form>
         <span class="spacer"></span>
         <RouterLink :to="`${base}/alerts`" class="bell" :aria-label="`${t('nav.alerts')}: ${alarmCount}`">
           <Icon name="alert" :size="20" /><span v-if="alarmCount" class="count">{{ alarmCount }}</span>
@@ -114,6 +121,8 @@ nav { display: grid; gap: 2px; }
             color: var(--ink); text-decoration: none; font-weight: 500; }
 .nav-item:hover { background: var(--surface-2); }
 .group { margin: 14px 12px 4px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.topsearch input { min-height: 40px; width: min(280px, 30vw); }
+.who strong { white-space: nowrap; }
 .bell { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); color: var(--ink); }
 .bell:hover { background: var(--surface-2); }
 .count { position: absolute; top: 4px; right: 2px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;

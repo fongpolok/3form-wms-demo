@@ -114,7 +114,7 @@ def pareto(tenant, date_from, date_to, workstation=None):
     start, end = _range(date_from, date_to)
     match = {"tenant_openid": tenant, "type": "scrap", "ts": {"$gte": start, "$lte": end}}
     if workstation:
-        match["workstation"] = workstation
+        match["workstation"] = {"$in": workstation} if isinstance(workstation, (list, tuple)) else workstation
     rows = list(mongo.db().step_events.aggregate([
         {"$match": match}, {"$group": {"_id": "$reason_code", "qty": {"$sum": "$qty"}, "events": {"$sum": 1}}},
         {"$sort": {"qty": -1}}]))

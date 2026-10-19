@@ -16,7 +16,7 @@ from rest_framework.authentication import BaseAuthentication
 from core import config
 from userprofile.models import Users
 
-from .models import Account, Session, hash_token
+from .models import Account, ApiKey, Session, hash_token
 
 logger = logging.getLogger("app")
 LAST_SEEN_WRITE_SECONDS = 30   # avoid a DB write on every request
@@ -31,6 +31,8 @@ class TokenAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
         header = request.META.get("HTTP_AUTHORIZATION", "")
+        if header.startswith("Api-Key "):
+            return self._api_key(request, header[len("Api-Key "):].strip())
         if not header.startswith(self.keyword + " "):
             return None  # anonymous; permission classes decide
         raw = header[len(self.keyword) + 1:].strip()
@@ -62,6 +64,20 @@ class TokenAuthentication(BaseAuthentication):
             raise exceptions.AuthenticationFailed("Company profile missing for this account.")
         request.tf_session = session
         return account, tenant
+
+    def _api_key(self, request, raw):
+        key = ApiKey.objects.select_related("account").filter(key_hash=hash_token(raw), is_active=True).first()
+        if key is None or not key.account.is_active:
+            raise exceptions.AuthenticationFailed("API key not valid or revoked.")
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            logger.warning("Blocked write with read-only API key %s: %s %s", key.name, request.method, request.path)
+            raise exceptions.PermissionDenied("API keys are read-only.")
+        now = timezone.now()
+        ApiKey.objects.filter(pk=key.pk).update(last_used=now, use_count=key.use_count + 1)
+        logging.getLogger("audit").info("API key %s read %s", key.name, request.path)
+        tenant = Users.objects.filter(openid=key.account.tenant_openid, is_delete=False).first()
+        request.tf_session = None
+        return key.account, tenant
 
     def authenticate_header(self, request):
         return self.keyword

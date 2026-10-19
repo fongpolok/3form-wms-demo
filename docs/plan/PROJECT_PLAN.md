@@ -1,6 +1,6 @@
 # 3Form WMS / MES / APS — Project Plan (agreed design)
 
-Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19. Phase 3 (v3.3.0) signed off 2026-10-19.
+Status: **Approved** 2026-10-19. Phase 1 (v3.1.0) signed off 2026-10-19. Phase 2 (v3.2.0) signed off 2026-10-19. Phase 3 (v3.3.0) signed off 2026-10-19. Phase 4 (v3.4.0) signed off 2026-10-19.
 Diagrams in this folder: `01-system-map.html`, `02-production-flow.html`, `03-version-timeline.html`.
 
 ---
@@ -60,6 +60,13 @@ A **production-scale** factory system for small and medium manufacturers, sold a
 - **Visibility:** the worker presses Scrap but sees no totals. The EM and PIC see the full trace-back.
 
 ### AI agent
+- **Decided 2026-10-19 (Phase 4 round):**
+  - The provider is **swappable**: any OpenAI-compatible service, set by the PIC in Settings → Integrations.
+  - The default model is **`deepseek-v4-pro`**. Thinking is off for scheduled jobs and on for chat.
+  - **Chat** is for PIC + EM.
+  - **Anonymisation is PENDING.** For now the default hides clients, workers, prices and the company name, each with its own switch.
+  - The RAG / company SOP library ships empty (no demo SOPs).
+  - Read-only **API keys** (AGENT role) and **ERP connection details** are entered by the PIC in Settings, stored encrypted.
 - **Jobs:**
   - **Work order calculation:** materials needed, stock check, expected finish time.
   - **Progress risk:** late, slow or scrap rising.

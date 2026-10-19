@@ -54,8 +54,8 @@ def collect(tenant, now, published=None):
     frozen_ops = {}
     if published:
         for op in published.get("ops", []):
-            start = _aware(op["start"])
-            if op.get("kind") == "planned" and now <= start < frozen_until:
+            start, end = _aware(op["start"]), _aware(op["end"])
+            if op.get("kind") == "planned" and start < frozen_until and end > now:   # not finished, starts soon
                 frozen_ops.setdefault(op["batch_id"], []).append(op)
     jobs, fixed = [], []
     for b in db.batches.find({"wo_id": {"$in": list(wos)}, "status": {"$in": ["waiting", "running"]}}):

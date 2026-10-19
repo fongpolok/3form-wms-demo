@@ -1,4 +1,4 @@
-# 3Form WMS: start, test and troubleshoot (v3.3.0)
+# 3Form WMS: start, test and troubleshoot (v3.4.0)
 
 ## 1. First-time setup (once per computer)
 
@@ -85,6 +85,15 @@ Two macOS details that matter:
 - **Rules in `config/settings.yaml` → `aps:`:** horizon, changeover, frozen hours, late buffer, workers per station, and whether re-planning is automatic.
 - **Holidays:** check gov.hk each year and add the next year to `aps/holidays.py`, then run `load_holidays`.
 
+## 5c. AI agent, search and SOPs
+
+- **AI key:** the PIC enters it in Settings → Integrations (stored encrypted), or as `DEEPSEEK_API_KEY` in `.env`. No key means "Advisor offline" and plain calculations.
+- **Changing provider:** set the address, model and key in Settings → Integrations (any OpenAI-compatible API).
+- **Search indexes (once):** `conda run -n 3form_WMS python manage.py search_setup`. The agent re-syncs search text after each run.
+- **Schedule:** `agent_run` hourly at :07, and `agent_run --if-pending` every 5 minutes (after alarms).
+- **API keys for outside AI tools:** Settings → Integrations → Create key. Send the header `Authorization: Api-Key <key>`; access is GET only.
+- **Backups:** keep `INTEGRATION_KEY` in `.env` safe. If you lose it, stored keys and ERP passwords must be re-entered.
+
 ## 6. Troubleshooting
 
 | You see | Do this |
@@ -94,6 +103,7 @@ Two macOS details that matter:
 | "Device not authorised" | The PIC must register this tablet (section 3) |
 | "Account locked" | Wait 15 minutes, or the PIC presses Unlock in People |
 | Port already in use | Change `MONGO_PORT` / `POSTGRES_PORT` in `.env`. Port 27030 belongs to `fpl-mongo` on this Mac |
+| "Advisor offline" | Read the reason shown. Check the key / cap in Settings → Integrations, then `logs/agent.log` |
 | Anything else | Look in `logs/error.log` first, then `logs/app.log` |
 
 ## 7. Run the automated tests

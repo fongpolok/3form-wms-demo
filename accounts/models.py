@@ -26,8 +26,10 @@ class Account(models.Model):
     ROLE_PIC = "PIC"
     ROLE_EM = "EM"
     ROLE_WORKER = "WORKER"
-    ROLE_CHOICES = ((ROLE_PIC, "PIC"), (ROLE_EM, "Engineering Manager"), (ROLE_WORKER, "Worker"))
-    ROLE_RANK = {ROLE_WORKER: 1, ROLE_EM: 2, ROLE_PIC: 3}
+    ROLE_AGENT = "AGENT"      # read-only API key for outside AI tools / systems
+    ROLE_CHOICES = ((ROLE_PIC, "PIC"), (ROLE_EM, "Engineering Manager"), (ROLE_WORKER, "Worker"),
+                    (ROLE_AGENT, "API agent (read-only)"))
+    ROLE_RANK = {ROLE_WORKER: 1, ROLE_EM: 2, ROLE_PIC: 3, ROLE_AGENT: 2}   # reads like an EM; writes blocked
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
                                 help_text="Password login (PIC / EM only)")
@@ -125,3 +127,20 @@ class AuditLog(models.Model):
 
     def delete(self, *args, **kwargs):
         raise PermissionError("Audit records cannot be deleted.")
+
+
+class ApiKey(models.Model):
+    """Read-only key for an outside AI agent or system. Header: Authorization: Api-Key <key>."""
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="api_key")
+    name = models.CharField(max_length=80)
+    key_hash = models.CharField(max_length=64, unique=True)
+    key_hint = models.CharField(max_length=8)
+    is_active = models.BooleanField(default=True)
+    created_by = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    use_count = models.BigIntegerField(default=0)
+
+    class Meta:
+        db_table = "tf_api_key"
+        ordering = ["-created_at"]

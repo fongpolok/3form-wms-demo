@@ -71,5 +71,5 @@ export default {
     thisDevice: 'This device', lastSeen: 'Last seen', otherDevice: 'Register another device: copy this one-time code into it',
   },
   audit: { title: 'Audit trail', subtitle: 'Every change: who, when, old value, new value. Records cannot be edited.', who: 'Who', when: 'When', what: 'What', before: 'Before', after: 'After' },
-  settings: { title: 'Settings', subtitle: 'Edit config/settings.yaml on the server, then restart. Shown here read-only.', industry: 'Industry', steps: 'Process steps', scrapReasons: 'Scrap reasons' },
+  settings: { title: 'Settings', subtitle: 'Industry and Integrations are changed here. Other values come from config/settings.yaml on the server (shown read-only below).', industry: 'Industry', steps: 'Process steps', scrapReasons: 'Scrap reasons' },
 }
