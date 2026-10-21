@@ -23,6 +23,9 @@ class BinZone(models.Model):
     tenant_openid = models.CharField(max_length=100, db_index=True)
     bin_name = models.CharField(max_length=64)
     zone = models.CharField(max_length=10, choices=ZONES, default=GENERAL)
+    # Where the bin is, for pick routes (settings.yaml -> warehouse_layout). Blank = not on the map yet.
+    aisle = models.PositiveIntegerField(null=True, blank=True)
+    position = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         db_table = "tf_bin_zone"

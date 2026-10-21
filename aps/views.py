@@ -31,7 +31,10 @@ class ReplanView(APIView):
     permission_classes = [IsManagerOrAbove]
 
     def post(self, request):
-        plan = service.request_replan(request.user.tenant_openid, "manual re-plan", request.user.display_name)
+        try:
+            plan = service.request_replan(request.user.tenant_openid, "manual re-plan", request.user.display_name)
+        except service.CuoptUnavailable as exc:
+            return Response({"detail": f"No new plan: {exc} The published plan is unchanged."}, status=503)
         plan.pop("_id", None)
         return Response(plan, status=201)
 

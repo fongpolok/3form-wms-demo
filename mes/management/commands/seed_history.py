@@ -41,6 +41,17 @@ MATERIALS = {"CREAM-BASE": "Cream base (g)", "SERUM-BASE": "Serum base (ml)", "L
              "LABEL-LT": "Label – lotion"}
 BINS = ([(f"RM-A{i:02d}", "RAW") for i in range(1, 9)] + [(f"FG-B{i:02d}", "FG") for i in range(1, 13)]
         + [("QA-C01", "QA"), ("HOLD-D01", "HOLD"), ("DMG-E01", "DAMAGE")])
+
+
+def bin_location(name):
+    """Sample warehouse map for pick routes: raw material in aisles 1-2, finished goods in 3-5, QA / hold in 6."""
+    if name.startswith("RM-A"):
+        n = int(name[4:]) - 1
+        return 1 + n // 4, 2 + 4 * (n % 4)
+    if name.startswith("FG-B"):
+        n = int(name[4:]) - 1
+        return 3 + n // 4, 3 + 4 * (n % 4)
+    return 6, {"QA-C01": 2, "HOLD-D01": 5, "DMG-E01": 8}.get(name, 10)
 SCRAP_WEIGHTS = {"SPILL": 34, "LEAK": 21, "LABEL": 15, "UNDER": 11, "DAMAGE": 8, "MACHINE": 6, "CONTAM": 3,
                  "OTHER": 2}
 DOWN_WEIGHTS = {"CHANGEOVER": 40, "MATERIAL": 20, "BREAKDOWN": 15, "CLEANING": 15, "BREAK": 10}
@@ -116,7 +127,9 @@ class Command(BaseCommand):
                 prop = {"QA": "Inspection", "HOLD": "Holding", "DAMAGE": "Damage"}.get(zone, "Normal")
                 LegacyBin.objects.create(bin_name=name, bin_size="Floor", bin_property=prop, empty_label=True,
                                          creater=SEED, bar_code=name, openid=t)
-            BinZone.objects.update_or_create(tenant_openid=t, bin_name=name, defaults={"zone": zone})
+            aisle, position = bin_location(name)
+            BinZone.objects.update_or_create(tenant_openid=t, bin_name=name,
+                                             defaults={"zone": zone, "aisle": aisle, "position": position})
         for code, (name, life, recipe, _, _) in PRODUCTS.items():
             p, _ = Product.objects.update_or_create(tenant_openid=t, goods_code=code,
                                                     defaults={"name": name, "shelf_life_days": life, "routing": []})

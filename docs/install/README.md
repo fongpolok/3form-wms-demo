@@ -1,4 +1,4 @@
-# 3Form WMS: start, test and troubleshoot (v3.5.0)
+# 3Form WMS: start, test and troubleshoot (v3.6.0)
 
 ## 1. First-time setup (once per computer)
 
@@ -93,6 +93,22 @@ Two macOS details that matter:
 - **Schedule:** `agent_run` hourly at :07, and `agent_run --if-pending` every 5 minutes (after alarms).
 - **API keys for outside AI tools:** Settings → Integrations → Create key. Send the header `Authorization: Api-Key <key>`; access is GET only.
 - **Backups:** keep `INTEGRATION_KEY` in `.env` safe. If you lose it, stored keys and ERP passwords must be re-entered.
+
+## 5c-2. Optimiser: built-in or NVIDIA cuOpt (v3.6.0)
+
+- **Choose the engine:** Settings → Integrations → Optimiser. Planning and pick routes are set separately.
+  Built-in needs nothing extra.
+- **cuOpt needs a GPU machine:** run NVIDIA's cuOpt server there (see NVIDIA's cuOpt quick-start). Then enter its
+  address, e.g. `http://10.0.0.5:5000`, and press **Test**.
+- **If cuOpt does not answer:** nothing changes. The last plan stays and a red alert "cuOpt unavailable" appears.
+  Fix the server, or switch back to Built-in.
+- **Try it without a GPU:** run `python tools/mock_cuopt.py --port 5000` and use `http://127.0.0.1:5000`.
+- **Pick routes:**
+  - Give each bin an aisle and a position (Bins page, PIC).
+  - Walking distances live in `config/settings.yaml → warehouse_layout`.
+  - Bins without a location are listed at the end of the route, marked "not on the map".
+- **Planning goal** (cuOpt): `config/settings.yaml → optimiser` (cost per minute late, urgent and priority
+  multipliers, time limit).
 
 ## 5d. ERP (SAP / Oracle / Workday)
 

@@ -80,7 +80,8 @@ const hrs = (h) => (h == null ? '–' : `${h > 0 ? '+' : ''}${h} h`)
     <div class="row">
       <div class="grow">
         <h2>{{ show === 'draft' && draft.data.value ? t('plan.draft') : t('plan.current') }} · <span class="mono">{{ plan.plan_id }}</span></h2>
-        <p class="muted">{{ plan.published_by ? t('plan.publishedBy', { who: plan.published_by, when: fmtDateTime(plan.published_at) }) : fmtDateTime(plan.created_at) }}</p>
+        <p class="muted">{{ plan.published_by ? t('plan.publishedBy', { who: plan.published_by, when: fmtDateTime(plan.published_at) }) : fmtDateTime(plan.created_at) }}
+          · {{ t('plan.engine') }}: {{ plan.engine === 'cuopt' ? t('plan.engineCuopt') : t('plan.engineBuiltin') }}</p>
         <p v-if="todayHoliday" class="pill pill-info holiday">{{ t('plan.holidayToday', { name: todayHoliday }) }}</p>
       </div>
       <div class="seg" role="radiogroup" :aria-label="t('plan.window')">

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-10-22 - Optional NVIDIA cuOpt optimiser (awaiting sign-off)
+
+### Added
+- **Optimiser setting** (Settings → Integrations, PIC): *Built-in* (default) or *NVIDIA cuOpt*, chosen separately
+  for the production plan and for pick routes. The PIC enters the cuOpt server address (and an optional
+  token, stored encrypted), and **Test** checks it.
+- **cuOpt production plan** (`optimiser/plan_milp.py`): a mixed-integer model. cuOpt decides the order on each
+  workstation (and which station, when a step has a choice) to cut minutes late, weighted by urgent and client
+  priority (`settings.yaml → optimiser`). Our calendar grid then places every step, so breaks, shifts and
+  staffing are respected exactly. The Plan page shows which engine made the plan.
+- **Pick routes:**
+  - Bins have an aisle and a position, which the PIC sets on the Bins page.
+  - Walking distance comes from `settings.yaml → warehouse_layout`.
+  - **Plan pick route** on Outbound, and a **Pick list** for each work order's materials (FEFO lots, in walking
+    order, with the distance in metres).
+  - Built-in route finder: it tries every order for short lists (8 bins or fewer, tunable), and uses nearest
+    bin + 2-opt for longer lists.
+- **No silent fallback:** if cuOpt is chosen and cannot answer, nothing changes. The published plan stays, a
+  **red alert** ("cuOpt unavailable") opens, and manual re-plan returns a clear message. The alert closes when
+  cuOpt answers again.
+- `tools/mock_cuopt.py`: a pretend cuOpt server with the same REST interface. It solves for real on the CPU
+  (HiGHS), for testing without a GPU.
+- The demo factory gets a sample warehouse map (raw material in aisles 1-2, finished goods in 3-5).
+
+### Changed
+- `aps/engine.py`: the step-placing code is shared by both engines (no behaviour change).
+
 ## [3.5.1] - 2026-10-21 - Public website demo mode
 
 ### Added

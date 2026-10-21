@@ -1,5 +1,5 @@
 <script setup>
-// Settings -> Integrations (PIC only): AI provider, ERP connections, read-only API keys.
+// Settings -> Integrations (PIC only): AI provider, optimiser (built-in / cuOpt), ERP connections, read-only API keys.
 // Secrets are write-only: the screen only ever shows the last 4 characters.
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -10,6 +10,9 @@ const { t } = useI18n()
 const ai = ref(null)
 const aiKey = ref('')
 const aiTest = ref('')
+const opt = ref(null)
+const optToken = ref('')
+const optTest = ref('')
 const erp = ref({ connections: [], systems: [] })
 const erpForm = ref(null)
 const keys = ref([])
@@ -21,7 +24,8 @@ const fail = (e) => { msg.value = { kind: 'error', text: e.message } }
 const ok = (text) => { msg.value = { kind: 'ok', text } }
 async function load() {
   try {
-    ;[ai.value, erp.value, keys.value] = await Promise.all([get('/api/v1/integrations/ai'), get('/api/v1/integrations/erp'), get('/api/v1/integrations/api-keys')])
+    ;[ai.value, erp.value, keys.value, opt.value] = await Promise.all([get('/api/v1/integrations/ai'), get('/api/v1/integrations/erp'),
+      get('/api/v1/integrations/api-keys'), get('/api/v1/integrations/optimiser')])
   } catch (e) { fail(e) }
 }
 onMounted(load)
@@ -29,6 +33,14 @@ async function saveAi() {
   try { ai.value = await put('/api/v1/integrations/ai', { ...ai.value, api_key: aiKey.value || undefined }); aiKey.value = ''; ok(t('integrations.saved')) } catch (e) { fail(e) }
 }
 async function testAi() { aiTest.value = '…'; try { const r = await post('/api/v1/integrations/ai/test', {}); aiTest.value = r.ok ? `✓ ${r.model}: ${r.reply}` : `✕ ${r.reply}` } catch (e) { aiTest.value = e.message } }
+async function saveOpt(clear = false) {
+  try {
+    const { plan_engine, pick_engine, cuopt_url } = opt.value
+    opt.value = await put('/api/v1/integrations/optimiser', { plan_engine, pick_engine, cuopt_url, cuopt_token: optToken.value || undefined, clear_token: clear || undefined })
+    optToken.value = ''; ok(t('integrations.saved'))
+  } catch (e) { fail(e) }
+}
+async function testOpt() { optTest.value = '…'; try { const r = await post('/api/v1/integrations/optimiser/test', { cuopt_url: opt.value.cuopt_url }); optTest.value = `${r.ok ? '✓' : '✕'} ${r.reply}` } catch (e) { optTest.value = e.message } }
 function editErp(c) { erpForm.value = c ? { ...c, secret: '' } : { name: '', system: 'SAP', base_url: '', auth_type: 'basic', username: '', secret: '', company_code: '', enabled: false } }
 async function saveErp() {
   try {
@@ -70,6 +82,25 @@ async function revoke(k) { if (confirm(t('integrations.confirmRevoke', { name: k
       <p class="muted small">{{ t('integrations.anonymise') }}: {{ Object.entries(ai.anonymise || {}).filter(([, v]) => v).map(([k]) => k).join(', ') || '–' }} · {{ t('integrations.anonymisePending') }}</p>
       <div class="row"><button class="btn btn-primary" @click="saveAi">{{ t('common.save') }}</button>
         <button class="btn" @click="testAi">{{ t('integrations.test') }}</button><span class="mono small">{{ aiTest }}</span></div>
+    </div>
+
+    <!-- Optimiser: built-in or NVIDIA cuOpt -->
+    <div v-if="opt" class="block">
+      <h3>{{ t('optimiser.title') }}</h3>
+      <p class="muted small">{{ t('optimiser.help') }}</p>
+      <div class="form">
+        <label class="field"><span>{{ t('optimiser.planEngine') }}</span>
+          <select v-model="opt.plan_engine"><option value="builtin">{{ t('optimiser.builtin') }}</option><option value="cuopt">{{ t('optimiser.cuopt') }}</option></select></label>
+        <label class="field"><span>{{ t('optimiser.pickEngine') }}</span>
+          <select v-model="opt.pick_engine"><option value="builtin">{{ t('optimiser.builtin') }}</option><option value="cuopt">{{ t('optimiser.cuopt') }}</option></select></label>
+        <label class="field"><span>{{ t('optimiser.url') }}</span><input v-model="opt.cuopt_url" class="mono" :placeholder="t('optimiser.urlHint')" /></label>
+        <label class="field"><span>{{ t('optimiser.token') }} <span class="muted">{{ opt.has_token ? t('optimiser.tokenSet') : t('optimiser.noToken') }}</span></span>
+          <input v-model="optToken" type="password" autocomplete="new-password" /></label>
+      </div>
+      <div class="row"><button class="btn btn-primary" @click="saveOpt()">{{ t('common.save') }}</button>
+        <button class="btn" @click="testOpt">{{ t('integrations.test') }}</button>
+        <button v-if="opt.has_token" class="btn" @click="saveOpt(true)">{{ t('optimiser.clearToken') }}</button>
+        <span class="mono small">{{ optTest }}</span></div>
     </div>
 
     <!-- ERP connections -->

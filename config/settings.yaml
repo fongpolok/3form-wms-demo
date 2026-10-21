@@ -150,6 +150,32 @@ aps:
   replan_on_stop_minutes: 30     # a machine stopped longer than this triggers a draft re-plan
   auto_replan: true              # re-plan automatically on new orders / material / long stops
 
+optimiser:
+  # Which engine plans production and orders pick routes. "builtin" (default, no extra hardware) or
+  # "cuopt" (NVIDIA cuOpt server on a GPU machine; the PIC enters its address in Settings -> Integrations).
+  # If cuOpt is chosen and cannot answer, nothing is changed: the last plan stays and a red alert is raised.
+  plan_engine: "builtin"
+  pick_engine: "builtin"
+  builtin_exact_stops: 8          # built-in pick route tries every order up to this many bins (8 = 40,320 orders)
+  cuopt:
+    time_limit_seconds: 20        # how long cuOpt may search for a better answer
+    poll_seconds: 1               # how often we ask cuOpt "is it ready?"
+    wait_seconds: 120             # give up (and alert) if no answer by then
+    max_binary_variables: 20000   # bigger planning problems are refused with a clear message
+  # Planning goal (cuOpt): minutes late are costly, finishing earlier is a small bonus.
+  late_minute_cost: 10
+  urgent_multiplier: 10           # Special / Urgent orders
+  priority_multiplier: { 1: 3, 2: 2, 3: 1, 4: 0.7, 5: 0.5 }   # client priority 1 = most important
+  finish_minute_cost: 0.01
+
+warehouse_layout:
+  # Walking distance for pick routes. Each bin can have an aisle number and a position along the aisle
+  # (set by the PIC on the Bins page). Aisles are joined by cross-aisles at the front (position 0) and the back.
+  aisle_gap_m: 3.0                # distance between neighbouring aisles
+  bin_pitch_m: 1.2                # distance between neighbouring positions in an aisle
+  aisle_length_positions: 20      # positions per aisle (where the back cross-aisle is)
+  depot: { aisle: 1, position: 0 } # where pickers start and finish (dispatch desk)
+
 agent:
   enabled: true                   # master switch; each company can also switch AI off in Settings
   default_base_url: "https://api.deepseek.com"

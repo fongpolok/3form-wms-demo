@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { get, patch, post } from '../../api/client.js'
 import { useSession } from '../../composables/session.js'
@@ -17,6 +17,15 @@ const bins = computed(() => (data.value?.bins || []).filter((b) => !zoneFilter.v
 async function add() {
   try { await post('/api/v1/inventory/bins', form.value); msg.value = { kind: 'ok', text: `${form.value.bin_name} ✓` }; form.value.bin_name = ''; reload() }
   catch (e) { msg.value = { kind: 'error', text: e.message } }
+}
+// Location for pick routes. Drafts are kept per bin so the 20-second refresh never wipes what the PIC types.
+const drafts = reactive({})
+const draft = (b) => (drafts[b.bin_name] ??= { aisle: b.aisle ?? '', position: b.position ?? '' })
+async function saveLocation(b) {
+  try {
+    await patch(`/api/v1/inventory/bins/${encodeURIComponent(b.bin_name)}/location`, draft(b))
+    delete drafts[b.bin_name]; msg.value = { kind: 'ok', text: `${b.bin_name} ✓` }; reload()
+  } catch (e) { msg.value = { kind: 'error', text: e.message } }
 }
 async function setZone(b, zone) {
   try { await patch(`/api/v1/inventory/bins/${encodeURIComponent(b.bin_name)}/zone`, { zone }); reload() }
@@ -42,6 +51,12 @@ async function setZone(b, zone) {
         <select v-if="session.can('PIC')" :value="b.zone" @change="setZone(b, $event.target.value)" :aria-label="`${b.bin_name} zone`" class="zone">
           <option v-for="z in data?.zones || []" :key="z[0]" :value="z[0]">{{ z[0] }}</option></select>
         <span v-else class="pill pill-info">{{ b.zone }}</span></div>
+      <form v-if="session.can('PIC')" class="row loc" @submit.prevent="saveLocation(b)">
+        <label class="field"><span>{{ t('bins.aisle') }}</span><input v-model="draft(b).aisle" type="number" min="1" inputmode="numeric" /></label>
+        <label class="field"><span>{{ t('bins.position') }}</span><input v-model="draft(b).position" type="number" min="0" inputmode="numeric" /></label>
+        <button class="btn" :aria-label="`${t('bins.setLocation')} ${b.bin_name}`">✓</button>
+      </form>
+      <p v-else class="muted small">{{ t('bins.location') }}: {{ b.aisle != null ? `${t('bins.aisle')} ${b.aisle} · ${t('bins.position')} ${b.position}` : t('bins.noLocation') }}</p>
       <p v-if="!b.contents.length" class="muted">{{ t('bins.empty') }}</p>
       <ul v-else><li v-for="c in b.contents" :key="c.goods_code + c.lot_number" class="mono">{{ c.goods_code }} · {{ c.lot_number || '–' }} · {{ c.qty.toLocaleString() }}</li></ul>
     </article>
@@ -55,5 +70,11 @@ async function setZone(b, zone) {
 .bin.empty { background: var(--surface-2); }
 .grow { flex: 1; }
 .zone { min-height: 34px; width: auto; padding: 2px 8px; }
+.loc { gap: 8px; align-items: flex-end; flex-wrap: nowrap; }
+.loc .field { flex: 1; min-width: 0; }
+.loc .field span { font-size: var(--text-sm); }
+.loc input { min-height: 36px; padding: 4px 8px; }
+.loc .btn { min-height: 36px; }
+.small { font-size: var(--text-sm); margin: 0; }
 ul { margin: 0; padding-left: 1.1em; font-size: var(--text-sm); }
 </style>

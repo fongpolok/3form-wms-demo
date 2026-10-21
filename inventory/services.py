@@ -70,7 +70,8 @@ def zone_of(tenant, bin_name):
 
 
 def list_bins(tenant):
-    zones = dict(BinZone.objects.filter(tenant_openid=tenant).values_list("bin_name", "zone"))
+    rows = {b.bin_name: b for b in BinZone.objects.filter(tenant_openid=tenant)}
+    zones = {name: b.zone for name, b in rows.items()}
     contents = defaultdict(list)
     for lot in StockLot.objects.filter(tenant_openid=tenant, qty__gt=0).order_by("goods_code"):
         contents[lot.bin_name].append({"goods_code": lot.goods_code, "lot_number": lot.lot_number, "qty": lot.qty,
@@ -79,6 +80,8 @@ def list_bins(tenant):
     for b in LegacyBin.objects.filter(openid=tenant, is_delete=False).order_by("bin_name"):
         out.append({"bin_name": b.bin_name, "bar_code": b.bar_code, "size": b.bin_size,
                     "zone": zones.get(b.bin_name) or LEGACY_ZONE.get(b.bin_property, BinZone.GENERAL),
+                    "aisle": getattr(rows.get(b.bin_name), "aisle", None),
+                    "position": getattr(rows.get(b.bin_name), "position", None),
                     "contents": contents.get(b.bin_name, [])})
     return out
 
@@ -95,6 +98,30 @@ def create_bin(account, bin_name, zone, size="Floor", request=None):
                              creater=_actor(account), bar_code=bin_name, openid=tenant)
     BinZone.objects.update_or_create(tenant_openid=tenant, bin_name=bin_name, defaults={"zone": zone})
     audit.record(account, "bin.create", "bin", bin_name, after={"zone": zone, "size": size}, request=request)
+
+
+@transaction.atomic
+def set_location(account, bin_name, aisle, position, request=None):
+    """Where a bin is (for pick routes). Both blank = take it off the map."""
+    tenant = account.tenant_openid
+    if not bin_exists(tenant, bin_name):
+        raise InventoryError(f"Bin {bin_name} not found.")
+    blank = aisle in (None, "") and position in (None, "")
+    try:
+        aisle, position = (None, None) if blank else (int(aisle), int(position))
+    except (TypeError, ValueError):
+        raise InventoryError("Aisle and position must both be whole numbers (or both blank).")
+    if not blank and (aisle < 1 or position < 0):
+        raise InventoryError("Aisle starts at 1 and position at 0.")
+    row = BinZone.objects.filter(tenant_openid=tenant, bin_name=bin_name).first()
+    if row is None:
+        row = BinZone.objects.create(tenant_openid=tenant, bin_name=bin_name, zone=zone_of(tenant, bin_name))
+    before = {"aisle": row.aisle, "position": row.position}
+    row.aisle, row.position = aisle, position
+    row.save(update_fields=["aisle", "position"])
+    audit.record(account, "bin.location", "bin", bin_name, before=before, after={"aisle": aisle, "position": position},
+                 request=request)
+    return row
 
 
 @transaction.atomic

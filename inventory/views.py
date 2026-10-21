@@ -104,6 +104,18 @@ class BinZoneView(APIView):
         return Response({"bin_name": bin_name, "zone": request.data.get("zone")})
 
 
+class BinLocationView(APIView):
+    permission_classes = [IsPIC]
+
+    def patch(self, request, bin_name):
+        try:
+            row = services.set_location(request.user, bin_name, request.data.get("aisle"), request.data.get("position"),
+                                        request=request)
+        except services.InventoryError as exc:
+            return _err(exc)
+        return Response({"bin_name": bin_name, "aisle": row.aisle, "position": row.position})
+
+
 class CountView(APIView):
     permission_classes = [IsManagerOrAbove]
 

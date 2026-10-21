@@ -9,6 +9,7 @@ Plan lifecycle (MongoDB `plans`):
 Only one draft is open at a time; a newer draft supersedes the older one.
 """
 import logging
+import math
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +17,9 @@ from accounts import audit
 from core import config, mongo
 from inventory import alerts
 from mes.workstations import list_workstations, routing
+from optimiser import plan_milp
+from optimiser import service as optimiser
+from optimiser.cuopt import CuoptUnavailable
 
 from . import calendar as cal
 from .engine import Fixed, Job, schedule
@@ -104,9 +108,19 @@ def compute(tenant, reason="manual", actor="system", now=None):
     slot = int(config.get("aps.slot_minutes", 5))
     slots = cal.build(now)
     stations = {w["code"]: w["step_code"] for w in list_workstations()}
-    res = schedule(slots, stations, jobs, fixed, slot, float(config.get("aps.changeover_minutes", 20)),
-                   int(config.get("aps.workers_per_station", 1)))
     buffer = timedelta(hours=float(config.get("aps.late_buffer_hours", 4)))
+    engine = optimiser.settings_for(tenant)
+    args = (slots, stations, jobs, fixed, slot, float(config.get("aps.changeover_minutes", 20)),
+            int(config.get("aps.workers_per_station", 1)))
+    if engine["plan_engine"] == "cuopt":
+        t0 = slots[0].start if slots else now
+
+        def due_slot(job):   # target finish = end of due date minus the late buffer, as a slot index
+            target = cal.day_end(cal.parse_date(job.due_date)) - buffer
+            return max(0, math.floor((target - t0).total_seconds() / 60 / slot))
+        res = plan_milp.schedule(*args, due_slot=due_slot, url=engine["cuopt_url"], token=engine["cuopt_token"])
+    else:
+        res = schedule(*args)
     finish = {}
     for op in res.ops:
         finish[op["wo_id"]] = max(finish.get(op["wo_id"], op["end"]), op["end"])
@@ -128,7 +142,7 @@ def compute(tenant, reason="manual", actor="system", now=None):
             "tenant_openid": tenant, "status": DRAFT, "created_at": now, "created_by": actor, "reason": reason,
             "horizon_start": slots[0].start if slots else now, "horizon_days": int(config.get("aps.horizon_days", 14)),
             "frozen_until": now + timedelta(hours=float(config.get("aps.frozen_hours", 4))),
-            "ops": res.ops, "orders": orders, "blocked": blocked, "unscheduled": res.unscheduled,
+            "engine": engine["plan_engine"], "ops": res.ops, "orders": orders, "blocked": blocked, "unscheduled": res.unscheduled,
             "stations": [{"code": c, "step_code": s} for c, s in stations.items()],
             "working": working_windows(slots, slot)}
     plan["diff"] = diff(published, plan)
@@ -190,8 +204,15 @@ def _publish(tenant, plan_id, by):
 
 
 def request_replan(tenant, reason, actor="system", urgent=False):
-    """Make a new plan. Urgent: publish now and tell the EM what moved. Otherwise: draft for approval."""
-    plan = compute(tenant, reason, actor)
+    """Make a new plan. Urgent: publish now and tell the EM what moved. Otherwise: draft for approval.
+    If the chosen optimiser (cuOpt) cannot answer: red alert, NO new plan, the published plan stays."""
+    try:
+        plan = compute(tenant, reason, actor)
+    except CuoptUnavailable as exc:
+        optimiser.raise_unavailable(tenant, "production plan", exc)
+        raise
+    if plan.get("engine") == "cuopt":
+        optimiser.close_unavailable(tenant, "production plan")
     _store(plan)
     if urgent:
         _publish(tenant, plan["plan_id"], f"auto (urgent: {reason})")

@@ -1,19 +1,26 @@
 <script setup>
-// Ship to a client from stock. Shows which lots will be picked (FEFO / FIFO) first.
+// Ship to a client from stock. Shows which lots will be picked (FEFO / FIFO) first, and the walking order.
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { get, post } from '../../api/client.js'
 import { usePolled } from '../../composables/poll.js'
 import PageHead from '../../components/PageHead.vue'
 import GoodsPicker from '../../components/GoodsPicker.vue'
+import PickRoute from '../../components/PickRoute.vue'
 
 const { t } = useI18n()
 const shipments = usePolled(() => get('/api/v1/inventory/shipments'), 20000)
 const client = ref('')
 const line = ref({ goods_code: '', qty: '' })
 const preview = ref(null)
+const route = ref(null)
 const msg = ref({ text: '', kind: 'ok' })
 
+watch(() => [line.value.goods_code, line.value.qty], () => { route.value = null })
+async function planRoute() {
+  try { route.value = await post('/api/v1/inventory/pick-route', { lines: [line.value] }); msg.value = { text: '', kind: 'ok' } }
+  catch (e) { route.value = null; msg.value = { kind: 'error', text: e.message } }
+}
 watch(() => line.value.goods_code, async (code) => {
   preview.value = code ? await get(`/api/v1/inventory/pick-preview/${encodeURIComponent(code)}`).catch(() => null) : null
 })
@@ -36,7 +43,9 @@ async function ship() {
       <p><strong>{{ t('stock.available') }}: {{ preview.available }}</strong> · {{ t('outbound.rule') }}: {{ preview.rule.toUpperCase() }}</p>
       <ol><li v-for="l in preview.lots.slice(0, 5)" :key="l.lot_number + l.bin_name" class="mono">{{ l.lot_number || '–' }} · {{ l.bin_name }} · {{ l.qty }} · {{ l.expiry_date || '—' }}</li></ol>
     </div>
+    <PickRoute v-if="route" :route="route" class="full" />
     <div class="row full">
+      <button type="button" class="btn" :disabled="!line.goods_code || !line.qty" @click="planRoute">{{ t('pick.route') }}</button>
       <button class="btn btn-primary">{{ t('outbound.ship') }}</button>
       <p v-if="msg.text" :class="['notice', msg.kind === 'ok' ? 'notice-ok' : 'notice-error']" role="status">{{ msg.text }}</p>
     </div>

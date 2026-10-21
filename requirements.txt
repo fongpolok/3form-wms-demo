@@ -28,3 +28,4 @@ python-docx==1.1.2
 # --- Tests ---
 pytest==8.3.3
 pytest-django==4.9.0
+highspy==1.11.0          # CPU solver used only by tools/mock_cuopt.py (tests without a GPU)

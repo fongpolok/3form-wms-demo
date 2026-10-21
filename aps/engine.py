@@ -117,14 +117,8 @@ class Grid:
         return None, 0
 
 
-def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes, workers_per_station=1):
-    """workstations: {code: step_code}. Returns Result with ops (dicts) in time order."""
-    res = Result()
-    if not slots:
-        res.unscheduled = [{"batch_id": j.batch_id, "wo_id": j.wo_id, "reason": "no calendar"} for j in jobs]
-        return res
-    grid = Grid(slots, workstations, slot_minutes, workers_per_station)
-    changeover_slots = math.ceil(changeover_minutes / slot_minutes) if changeover_minutes else 0
+def load_fixed(grid, res, fixed):
+    """Put running / frozen operations on the grid first. Returns {batch_id: first free slot after them}."""
     batch_ready = {}
     for f in fixed:
         if f.workstation not in grid.busy:
@@ -136,34 +130,58 @@ def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes,
                         "start": f.start, "end": max(f.end, grid.time(i1)) if f.kind == "frozen" else f.end,
                         "setup_minutes": 0, "kind": f.kind})
         batch_ready[f.batch_id] = max(batch_ready.get(f.batch_id, 0), i1)
+    return batch_ready
+
+
+def place(grid, res, job, st, stations, ready, changeover_slots, workers_per_station, engine="builtin"):
+    """Fit one step on the best of `stations` (earliest finish) from slot `ready`.
+    Returns the first slot after it, or None (and records why) when it does not fit."""
+    work_slots = max(1, math.ceil(st["minutes"] / grid.minutes))
+    best = None
+    for ws in sorted(stations):
+        taken, setup = grid.fit(ws, ready, work_slots, job.product_code, changeover_slots)
+        if taken and (best is None or taken[-1] < best[1][-1]):
+            best = (ws, taken, setup)
+    if best is None:
+        res.unscheduled.append({"batch_id": job.batch_id, "wo_id": job.wo_id, "step_code": st["step_code"],
+                                "reason": "beyond planning horizon" if stations else "no workstation for this step"})
+        return None
+    ws, taken, setup = best
+    for i in taken:
+        grid.busy[ws][i] = job.product_code
+        grid.workers[i] += workers_per_station
+    res.ops.append({"workstation": ws, "batch_id": job.batch_id, "wo_id": job.wo_id,
+                    "product_code": job.product_code, "step_no": st["step_no"], "step_code": st["step_code"],
+                    "start": grid.time(taken[setup]) if setup < len(taken) else grid.time(taken[0]),
+                    "setup_start": grid.time(taken[0]) if setup else None,
+                    "end": grid.time(taken[-1] + 1), "setup_minutes": setup * grid.minutes,
+                    "work_minutes": st["minutes"], "kind": "planned", "urgent": job.urgent, "engine": engine})
+    return taken[-1] + 1
+
+
+def stations_by_step(workstations):
     by_step = {}
     for ws, step in workstations.items():
         by_step.setdefault(step, []).append(ws)
+    return by_step
 
+
+def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes, workers_per_station=1):
+    """workstations: {code: step_code}. Returns Result with ops (dicts) in time order."""
+    res = Result()
+    if not slots:
+        res.unscheduled = [{"batch_id": j.batch_id, "wo_id": j.wo_id, "reason": "no calendar"} for j in jobs]
+        return res
+    grid = Grid(slots, workstations, slot_minutes, workers_per_station)
+    changeover_slots = math.ceil(changeover_minutes / slot_minutes) if changeover_minutes else 0
+    batch_ready = load_fixed(grid, res, fixed)
+    by_step = stations_by_step(workstations)
     for job in sorted(jobs, key=priority_key):
         ready = max(batch_ready.get(job.batch_id, 0), grid.index(job.ready_after))
         for st in job.steps:
-            work_slots = max(1, math.ceil(st["minutes"] / slot_minutes))
-            best = None
-            for ws in sorted(by_step.get(st["step_code"], [])):
-                taken, setup = grid.fit(ws, ready, work_slots, job.product_code, changeover_slots)
-                if taken and (best is None or taken[-1] < best[1][-1]):
-                    best = (ws, taken, setup)
-            if best is None:
-                res.unscheduled.append({"batch_id": job.batch_id, "wo_id": job.wo_id, "step_code": st["step_code"],
-                                        "reason": "beyond planning horizon" if by_step.get(st["step_code"])
-                                        else "no workstation for this step"})
+            ready = place(grid, res, job, st, by_step.get(st["step_code"], []), ready, changeover_slots,
+                          workers_per_station)
+            if ready is None:
                 break
-            ws, taken, setup = best
-            for i in taken:
-                grid.busy[ws][i] = job.product_code
-                grid.workers[i] += workers_per_station
-            res.ops.append({"workstation": ws, "batch_id": job.batch_id, "wo_id": job.wo_id,
-                            "product_code": job.product_code, "step_no": st["step_no"], "step_code": st["step_code"],
-                            "start": grid.time(taken[setup]) if setup < len(taken) else grid.time(taken[0]),
-                            "setup_start": grid.time(taken[0]) if setup else None,
-                            "end": grid.time(taken[-1] + 1), "setup_minutes": setup * slot_minutes,
-                            "work_minutes": st["minutes"], "kind": "planned", "urgent": job.urgent})
-            ready = taken[-1] + 1
     res.ops.sort(key=lambda o: (o["start"], o["workstation"]))
     return res
