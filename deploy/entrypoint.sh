@@ -2,6 +2,8 @@
 # web | demo | scheduler | gateway | any manage.py command
 set -e
 cd /app
+# Some hosts (e.g. Render) pass the full command, including this script's own path, as arguments.
+[ "$1" = "/app/deploy/entrypoint.sh" ] && shift
 case "$1" in
   web)
     python manage.py migrate --noinput
