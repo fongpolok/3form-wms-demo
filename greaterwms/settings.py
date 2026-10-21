@@ -17,6 +17,9 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or os.environ['SECRET_KEY']
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+# Render tells the app its own public address; accept it without a manual setting.
+if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
 # Behind the Caddy HTTPS proxy (edge box / cloud): trust its X-Forwarded-Proto header.
 if os.environ.get('DJANGO_BEHIND_PROXY') == 'True':
@@ -24,6 +27,8 @@ if os.environ.get('DJANGO_BEHIND_PROXY') == 'True':
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+    if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
+        CSRF_TRUSTED_ORIGINS.append('https://' + os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
 
 # Application definition
