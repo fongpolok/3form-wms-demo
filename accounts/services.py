@@ -131,3 +131,56 @@ def revoke_api_key(pic, key_id, request=None):
     key.account.save(update_fields=["is_active"])
     audit.record(pic, "api_key.revoke", "api_key", key.pk, after={"name": key.name}, request=request)
     return key
+
+
+# ---------------------------------------------------------------- public website demo
+DEMO_ROLES = {"pic": Account.ROLE_PIC, "em": Account.ROLE_EM, "worker": Account.ROLE_WORKER}
+
+
+def demo_tenant():
+    from userprofile.models import Users
+    row = Users.objects.filter(name="demo", is_delete=False).first()
+    return row.openid if row else None
+
+
+def ensure_demo_device(tenant, workstation):
+    """The fixed demo tablet for one workstation (token re-created from SECRET_KEY)."""
+    from core import public_demo
+    raw = public_demo.device_token(workstation)
+    device = Device.objects.filter(token_hash=hash_token(raw)).first()
+    if device is None:
+        pic = Account.objects.filter(tenant_openid=tenant, role=Account.ROLE_PIC).first()
+        device = Device.objects.create(name=f"Public demo tablet {workstation}", workstation=workstation,
+                                       tenant_openid=tenant, token_hash=hash_token(raw), token_hint=raw[:6],
+                                       registered_by=pic)
+    elif not device.is_active:
+        device.is_active = True
+        device.save(update_fields=["is_active"])
+    return device, raw
+
+
+def demo_login(role, workstation="", ip=""):
+    """One-click sign-in for the public demo (PUBLIC_DEMO=1 only). No password: these accounts hold demo data only."""
+    from core import public_demo
+    from mes.workstations import get_workstation
+    if not public_demo.enabled():
+        raise LoginError("Not available.")
+    if role not in DEMO_ROLES:
+        raise LoginError("Unknown demo role.")
+    tenant = demo_tenant()
+    if tenant is None:
+        raise LoginError("The demo is being prepared. Please try again in a minute.")
+    qs = Account.objects.filter(tenant_openid=tenant, role=DEMO_ROLES[role], is_active=True)
+    if role == "worker":
+        qs = qs.filter(staff_id=str(config.get("public_demo.worker_staff_id", "1001")))
+    account = qs.order_by("pk").first()
+    if account is None:
+        raise LoginError("The demo is being prepared. Please try again in a minute.")
+    device, raw_device = None, None
+    if role == "worker":
+        if get_workstation(workstation) is None:
+            raise LoginError("Unknown workstation.")
+        device, raw_device = ensure_demo_device(tenant, workstation)
+    logger.info("Public demo sign-in: %s %s from %s", role, workstation, ip)
+    hours = int(config.get("auth.worker_session_hours", 12)) if device else None
+    return account, device, raw_device, _open_session(account, hours=hours, device=device, ip=ip)

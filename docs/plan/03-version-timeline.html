@@ -18,13 +18,13 @@
     }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1200px; width: 100%; }
+    .frame { max-width: 1400px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
                text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
          letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1000px; display: block; }
+    svg { width: 100%; min-width: 1260px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -34,9 +34,9 @@
     <h1>From GreaterWMS fork to 3Form v3.5</h1>
 
     <div class="diagram-container">
-      <svg viewBox="0 0 1000 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="version-timeline-title version-timeline-desc">
+      <svg viewBox="0 0 1260 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="version-timeline-title version-timeline-desc">
         <title id="version-timeline-title">From GreaterWMS fork to 3Form v3.5</title>
-        <desc id="version-timeline-desc">Release order from the v3.0.0 baseline through five phase releases, each signed off by the user, ending with the v3.5.0 git push.</desc>
+        <desc id="version-timeline-desc">Release order from the v3.0.0 baseline through five phase releases, each signed off by the user, then the v3.5.1 public demo and the planned v3.6.0 cuOpt option.</desc>
 
         <rect width="100%" height="100%" fill="#fafaf7"/>
 
@@ -44,7 +44,7 @@
         <text x="40" y="28" fill="#6b7280" font-size="8" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.18em">RELEASE ORDER · NOT A TIME SCALE · DATE STAMPED AT EACH SIGN-OFF</text>
 
         <!-- Baseline -->
-        <line x1="40" y1="168" x2="960" y2="168" stroke="#1a1a1a" stroke-width="1"/>
+        <line x1="40" y1="168" x2="1220" y2="168" stroke="#1a1a1a" stroke-width="1"/>
 
         <!-- Drops (hairlines from dot to label) -->
         <line x1="100" y1="164" x2="100" y2="124" stroke="#d1d5db" stroke-width="1"/>
@@ -52,7 +52,9 @@
         <line x1="420" y1="164" x2="420" y2="124" stroke="#d1d5db" stroke-width="1"/>
         <line x1="580" y1="172" x2="580" y2="212" stroke="#d1d5db" stroke-width="1"/>
         <line x1="740" y1="164" x2="740" y2="124" stroke="#d1d5db" stroke-width="1"/>
-        <line x1="900" y1="174" x2="900" y2="212" stroke="#0050cc" stroke-width="1"/>
+        <line x1="900" y1="172" x2="900" y2="212" stroke="#d1d5db" stroke-width="1"/>
+        <line x1="1060" y1="162" x2="1060" y2="124" stroke="#0050cc" stroke-width="1"/>
+        <line x1="1180" y1="172" x2="1180" y2="212" stroke="#d1d5db" stroke-width="1" stroke-dasharray="3 3"/>
 
         <!-- Events -->
         <circle cx="100" cy="168" r="4" fill="#1a1a1a"/>
@@ -60,7 +62,9 @@
         <circle cx="420" cy="168" r="4" fill="#1a1a1a"/>
         <circle cx="580" cy="168" r="4" fill="#1a1a1a"/>
         <circle cx="740" cy="168" r="4" fill="#1a1a1a"/>
-        <circle cx="900" cy="168" r="6" fill="#0050cc"/>
+        <circle cx="900" cy="168" r="4" fill="#1a1a1a"/>
+        <circle cx="1060" cy="168" r="6" fill="#0050cc"/>
+        <circle cx="1180" cy="168" r="4" fill="#fafaf7" stroke="#6b7280" stroke-width="1" stroke-dasharray="2 2"/>
 
         <!-- Labels above -->
         <text x="100" y="72" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.0.0 · 2026-10-19</text>
@@ -88,13 +92,22 @@
         <text x="580" y="270" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">sort · fit · urgent re-plan</text>
         <text x="580" y="288" fill="#047857" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">signed off</text>
 
-        <text x="900" y="232" fill="#0050cc" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.5.0 · 2026-10-19</text>
+        <text x="900" y="232" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.5.0 · 2026-10-19</text>
         <text x="900" y="252" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">ERP + release</text>
         <text x="900" y="270" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">sign-off → git push</text>
         <text x="900" y="288" fill="#047857" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">signed off</text>
 
+        <text x="1060" y="72" fill="#0050cc" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.5.1 · 2026-10-21</text>
+        <text x="1060" y="54" fill="#b45309" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">deploying</text>
+        <text x="1060" y="92" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">Public demo</text>
+        <text x="1060" y="110" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">try-it buttons · daily reset</text>
+
+        <text x="1180" y="232" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">v3.6.0 · planned</text>
+        <text x="1180" y="252" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Inter', sans-serif" text-anchor="middle">cuOpt option</text>
+        <text x="1180" y="270" fill="#6b7280" font-size="9" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">plan + picking routes</text>
+
         <!-- Footer note -->
-        <line x1="40" y1="300" x2="960" y2="300" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+        <line x1="40" y1="300" x2="1220" y2="300" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
         <text x="40" y="320" fill="#6b7280" font-size="8.5" font-family="'Inter', sans-serif">Each dot = one CHANGELOG entry + one tagged version. Edward checks each phase before the next starts. One git push at the end.</text>
       </svg>
     </div>

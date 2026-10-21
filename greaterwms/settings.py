@@ -90,6 +90,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.LegacyStockReadOnlyMiddleware',
+    'core.public_demo.PublicDemoGuardMiddleware',
 ]
 
 ROOT_URLCONF = 'greaterwms.urls'
@@ -124,6 +125,8 @@ DATABASES = {
         'USER': os.environ.get('POSTGRES_USER', 'threeform'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
         'CONN_MAX_AGE': 60,
+        # Hosted databases (e.g. Neon for the public demo) need an encrypted connection: POSTGRES_SSLMODE=require
+        'OPTIONS': {'sslmode': os.environ['POSTGRES_SSLMODE']} if os.environ.get('POSTGRES_SSLMODE') else {},
     }
 }
 # One-off: read the old SQLite file (used only to copy legacy data into PostgreSQL).
@@ -178,7 +181,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media').replace('\\', '/')
 SPECTACULAR_SETTINGS = {
     'TITLE': '3Form WMS / MES / APS',
     'DESCRIPTION': '3Form WMS API (agent-ready). Auth: Authorization: Bearer <token>',
-    'VERSION': '3.5.0',
+    'VERSION': '3.5.1',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
     'SWAGGER_UI_DIST': 'SIDECAR',  # shorthand to use the sidecar instead

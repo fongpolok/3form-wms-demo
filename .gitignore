@@ -31,3 +31,6 @@ frontend/dist/
 deploy/.env
 deploy/site/.env
 deploy/certs/
+
+# SOP uploads (and test uploads) never go to git
+media/sop/

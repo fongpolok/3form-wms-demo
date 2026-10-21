@@ -12,6 +12,7 @@ channels==4.1.0
 # --- Databases ---
 psycopg[binary]==3.2.3
 pymongo==4.10.1
+dnspython==2.9.0
 # --- Config / data ---
 PyYAML==6.0.2
 python-dotenv==1.0.1

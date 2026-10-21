@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from core import config, mongo, secrets
+from core import config, mongo, public_demo, secrets
 
 logger = logging.getLogger("agent")
 
@@ -32,6 +32,9 @@ def provider(tenant):
     if row and row.api_key_enc:
         key = secrets.decrypt(row.api_key_enc)
     key = key or os.environ.get("DEEPSEEK_API_KEY", "")
+    cap = row.daily_call_cap if row else 300
+    if public_demo.enabled():   # the public website demo never spends more than this, whatever the DB says
+        cap = min(cap, int(config.get("public_demo.ai_daily_calls", 30)))
     return {
         "label": row.label if row else "DeepSeek",
         "base_url": (row.base_url if row else config.get("agent.default_base_url")).rstrip("/"),
@@ -39,7 +42,7 @@ def provider(tenant):
         "api_key": key,
         "enabled": (row.enabled if row else True) and bool(config.get("agent.enabled", True)),
         "chat_thinking": row.chat_thinking if row else True,
-        "daily_call_cap": row.daily_call_cap if row else 300,
+        "daily_call_cap": cap,
         "key_source": "settings" if (row and row.api_key_enc) else (".env" if key else "none"),
     }
 

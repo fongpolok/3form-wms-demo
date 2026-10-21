@@ -70,6 +70,20 @@ There are two ways to run it in a factory. Both use the same Docker image (`depl
 
 ---
 
+## C. Public website demo (free hosting)
+
+Only for the public demo at demo.3formhk.com. It wipes all data every day.
+
+| Piece | Free service | Setting |
+|---|---|---|
+| App | Render web service (Docker, `deploy/Dockerfile`), Singapore | start command `/app/deploy/entrypoint.sh demo` |
+| PostgreSQL | Neon, AWS Singapore | `POSTGRES_HOST/DB/USER/PASSWORD`, `POSTGRES_PORT=5432`, `POSTGRES_SSLMODE=require` |
+| MongoDB | Atlas free cluster, AWS Singapore | `MONGO_URI=mongodb+srv://...` (Network Access: 0.0.0.0/0) |
+
+Other variables: `PUBLIC_DEMO=1`, `SECRET_KEY`, `INTEGRATION_KEY`, `GATEWAY_TOKEN`, `ALLOWED_HOSTS`,
+`DJANGO_BEHIND_PROXY=True`, `CSRF_TRUSTED_ORIGINS`, `WEB_WORKERS=2`, and `DEEPSEEK_API_KEY` (optional; capped at 30 calls a day).
+The free app sleeps after 15 minutes without visitors and takes about a minute to wake.
+
 ## Running it
 
 | Task | Command (from the project folder on the box) |

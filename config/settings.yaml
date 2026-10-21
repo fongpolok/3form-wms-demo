@@ -102,6 +102,25 @@ demo:
   em_username: "em_demo"
   worker_staff_id: "1001"
 
+public_demo:
+  # Public website demo only. Switched on by the environment variable PUBLIC_DEMO=1 (never in a client install).
+  ai_daily_calls: 30             # AI calls per day for the whole demo; after that, plain calculations
+  reset_every_hours: 24          # all demo data is wiped and re-created when older than this
+  reset_daily_at: "03:00"        # site time, while the demo is awake
+  history_days: 90               # days of production history created on each reset
+  worker_staff_id: "1001"        # who "Try the worker tablet" signs in as
+  # Writes refused in public demo mode (URL prefixes). Reading is always allowed.
+  blocked_writes:
+    - "/api/v1/integrations/"    # AI key, ERP connections, API keys, ERP sync
+    - "/api/v1/accounts"         # create / change people
+    - "/api/v1/devices"          # register / revoke tablets
+    - "/api/v1/sop"              # SOP uploads
+    - "/admin/"
+  # Old GreaterWMS screens are not part of the demo: every write outside /api/v1/ is refused.
+  allow_writes_outside_api: false
+  # Work in the scheduler that a demo does not need (backups, Excel files, ERP).
+  skip_jobs: ["backup", "excel export", "erp sync"]
+
 api:
   throttle_user: "1200/min"      # per logged-in person
   throttle_anon: "3000/min"      # per IP: health checks, gateway, login

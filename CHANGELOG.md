@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.1] - 2026-10-21 - Public website demo mode
+
+### Added
+- **Public demo mode** (`PUBLIC_DEMO=1`, for the 3formhk.com demo only; never on a client install):
+  - The login page shows one-click **Try as PIC / Try as Engineering Manager / Try the worker tablet** buttons
+    (with a workstation picker). No passwords are shown, and the demo accounts get random passwords on each reset.
+  - Risky settings are refused (AI key, ERP connections, API keys, people, tablets, SOP uploads, old GreaterWMS
+    screens). The list is `public_demo.blocked_writes` in `settings.yaml`.
+  - The AI is capped at 30 calls a day for everyone. The cap can't be raised from Settings.
+  - `manage.py public_demo_reset` wipes ALL data and rebuilds the sample factory (90 days of history). It runs
+    daily at 03:00 and on start-up when the data is over 24 h old. The AI day counter is kept.
+  - `entrypoint.sh demo`: the web app and the scheduler in one small container (free hosting).
+- Hosted databases: `POSTGRES_SSLMODE` (e.g. Neon) and `mongodb+srv://` addresses (MongoDB Atlas; adds dnspython).
+
+### Fixed
+- Removed 69 iCloud duplicate files (`… 2.py`), which made Django see two conflicting migrations.
+
 ## [3.5.0] - 2026-10-19 - Phase 5 ERP connectors + deployment (signed off)
 
 ### Added

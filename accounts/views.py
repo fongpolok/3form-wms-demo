@@ -57,6 +57,35 @@ class WorkerLoginView(APIView):
         return Response({"token": token, **_me_payload(account, device)})
 
 
+class PublicDemoView(APIView):
+    """Login page start-up: show the "Try it" buttons only on the public website demo."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from core import public_demo
+        from mes.workstations import list_workstations
+        if not public_demo.enabled():
+            return Response({"enabled": False})
+        return Response({"enabled": True, "ai_daily_calls": int(config.get("public_demo.ai_daily_calls", 30)),
+                         "workstations": [{"code": w["code"], "step_name": w["step_name"]} for w in list_workstations()]})
+
+
+class DemoLoginView(APIView):
+    """Public website demo: one click signs in as the demo PIC / EM, or opens a demo worker tablet."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            account, device, raw_device, token = services.demo_login(request.data.get("role", ""),
+                                                                     request.data.get("workstation", ""),
+                                                                     ip=audit.client_ip(request))
+        except services.LoginError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"token": token, "device_token": raw_device, **_me_payload(account, device)})
+
+
 class LogoutView(APIView):
     permission_classes = [IsWorkerOrAbove]
 
