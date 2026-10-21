@@ -34,3 +34,6 @@ deploy/certs/
 
 # SOP uploads (and test uploads) never go to git
 media/sop/
+
+# Local secrets hand-over files never go to git
+*secrets*.txt

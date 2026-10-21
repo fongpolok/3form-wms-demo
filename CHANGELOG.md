@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `entrypoint.sh demo`: the web app and the scheduler in one small container (free hosting).
 - Hosted databases: `POSTGRES_SSLMODE` (e.g. Neon) and `mongodb+srv://` addresses (MongoDB Atlas; adds dnspython).
 
+### Changed
+- The `Dockerfile` moved from `deploy/` to the project root, so Render can build it (compose files and CI updated).
+
 ### Fixed
 - Removed 69 iCloud duplicate files (`… 2.py`), which made Django see two conflicting migrations.
 

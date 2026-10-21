@@ -170,7 +170,7 @@ jobs:
 
     - name: Build Docker image for scanning
       run: |
-        docker build -f deploy/Dockerfile -t threeform-security-scan .
+        docker build -t threeform-security-scan .
 
     - name: Run Trivy vulnerability scanner
       if: success()

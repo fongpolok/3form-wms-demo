@@ -5,7 +5,7 @@ name: threeform-site
 services:
   gateway:
     image: 3form-wms:${APP_VERSION:-3.5.0}        # same image, built here or pulled from your registry
-    build: { context: ../.., dockerfile: deploy/Dockerfile }
+    build: { context: ../.., dockerfile: Dockerfile }
     command: ["gateway"]
     restart: unless-stopped
     network_mode: host                            # sees the factory LAN and the WireGuard tunnel

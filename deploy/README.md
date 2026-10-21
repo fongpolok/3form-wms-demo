@@ -1,6 +1,6 @@
 # Deploying 3Form WMS (v3.5.0)
 
-There are two ways to run it in a factory. Both use the same Docker image (`deploy/Dockerfile`).
+There are two ways to run it in a factory. Both use the same Docker image (`Dockerfile` at the project root).
 
 | | A. Edge box (recommended) | B. Cloud VM + factory site box |
 |---|---|---|
@@ -76,7 +76,7 @@ Only for the public demo at demo.3formhk.com. It wipes all data every day.
 
 | Piece | Free service | Setting |
 |---|---|---|
-| App | Render web service (Docker, `deploy/Dockerfile`), Singapore | start command `/app/deploy/entrypoint.sh demo` |
+| App | Render web service (Docker, root `Dockerfile`), Singapore | start command `/app/deploy/entrypoint.sh demo` |
 | PostgreSQL | Neon, AWS Singapore | `POSTGRES_HOST/DB/USER/PASSWORD`, `POSTGRES_PORT=5432`, `POSTGRES_SSLMODE=require` |
 | MongoDB | Atlas free cluster, AWS Singapore | `MONGO_URI=mongodb+srv://...` (Network Access: 0.0.0.0/0) |
 

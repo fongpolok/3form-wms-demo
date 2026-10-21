@@ -1,5 +1,5 @@
 # 3Form WMS / MES / APS - one image for the web app, the scheduler and the site gateway.
-#   docker build -f deploy/Dockerfile -t 3form-wms:3.5.0 .
+#   docker build -t 3form-wms:3.5.1 .   (kept at the project root so Render can build it)
 FROM node:20-alpine AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./

@@ -3,7 +3,7 @@
 #   docker compose --env-file deploy/.env -f deploy/docker-compose.cloud.yml up -d --build
 name: threeform-cloud
 x-app: &app
-  build: { context: .., dockerfile: deploy/Dockerfile }
+  build: { context: .., dockerfile: Dockerfile }
   image: 3form-wms:${APP_VERSION:-3.5.0}
   restart: unless-stopped
   env_file: .env
