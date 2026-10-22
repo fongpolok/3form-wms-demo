@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-10-23 - Public demo fix
+
+### Fixed
+- The public demo ran in plain "web" mode because Render ignored the start command, so the **daily reset and the
+  scheduler never ran** on the website demo. `entrypoint.sh` now switches to demo mode by itself whenever
+  `PUBLIC_DEMO=1`. Client installs are unchanged.
+
 ## [3.6.0] - 2026-10-22 - Optional NVIDIA cuOpt optimiser (signed off 2026-10-23)
 
 ### Added

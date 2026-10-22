@@ -4,6 +4,9 @@ set -e
 cd /app
 # Some hosts (e.g. Render) pass the full command, including this script's own path, as arguments.
 [ "$1" = "/app/deploy/entrypoint.sh" ] && shift
+# The public website demo always runs in demo mode (daily reset + scheduler in the same container),
+# even if the host ignores the start command and runs the image's default "web".
+if [ "$1" = "web" ] && [ "${PUBLIC_DEMO:-}" = "1" ]; then set -- demo; fi
 case "$1" in
   web)
     python manage.py migrate --noinput
