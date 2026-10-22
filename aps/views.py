@@ -10,6 +10,7 @@ from inventory.models import SiteSetting
 from inventory.site import SITE
 
 from . import calendar as cal
+from . import rules as aps_rules
 from . import service
 from .models import Holiday, StaffingOverride
 
@@ -76,6 +77,7 @@ class CalendarView(APIView):
             "staffing": list(StaffingOverride.objects.filter(date__gte=today).values()),
             "settings": {k: config.get(f"aps.{k}") for k in ("horizon_days", "changeover_minutes", "frozen_hours",
                                                               "late_buffer_hours", "workers_per_station")},
+            "rules": aps_rules.editable(),
         })
 
     def put(self, request):
@@ -105,6 +107,24 @@ class CalendarView(APIView):
         audit.record(request.user, "calendar.shifts", "calendar", "shifts", before=before,
                      after={"shifts": shifts, "working_days": days}, request=request)
         return Response({"shifts": shifts, "working_days": days})
+
+
+class RulesView(APIView):
+    """PIC: how hard the planners try to save changeovers (Calendar page)."""
+    permission_classes = [IsPIC]
+
+    def put(self, request):
+        try:
+            changes = aps_rules.validate(request.data)
+        except ValueError as exc:
+            return _err(exc)
+        before = aps_rules.editable()
+        for name, value in changes.items():
+            SiteSetting.objects.update_or_create(tenant_openid=SITE, key=f"aps.{name}",
+                                                 defaults={"value": value, "updated_by": request.user.display_name})
+        after = aps_rules.editable()
+        audit.record(request.user, "calendar.rules", "calendar", "rules", before=before, after=after, request=request)
+        return Response(after)
 
 
 class HolidayView(APIView):

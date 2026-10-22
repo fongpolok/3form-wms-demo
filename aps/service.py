@@ -22,6 +22,7 @@ from optimiser import service as optimiser
 from optimiser.cuopt import CuoptUnavailable
 
 from . import calendar as cal
+from . import rules as aps_rules
 from .engine import Fixed, Job, schedule
 
 logger = logging.getLogger("aps")
@@ -114,15 +115,17 @@ def compute(tenant, reason="manual", actor="system", now=None, engine_name=None)
         engine["plan_engine"] = engine_name
     args = (slots, stations, jobs, fixed, slot, float(config.get("aps.changeover_minutes", 20)),
             int(config.get("aps.workers_per_station", 1)))
+    rules = aps_rules.editable()
     if engine["plan_engine"] == "cuopt":
         t0 = slots[0].start if slots else now
 
         def due_slot(job):   # target finish = end of due date minus the late buffer, as a slot index
             target = cal.day_end(cal.parse_date(job.due_date)) - buffer
             return max(0, math.floor((target - t0).total_seconds() / 60 / slot))
-        res = plan_milp.schedule(*args, due_slot=due_slot, url=engine["cuopt_url"], token=engine["cuopt_token"])
+        res = plan_milp.schedule(*args, due_slot=due_slot, url=engine["cuopt_url"], token=engine["cuopt_token"],
+                                 changeover_cost=float(rules["changeover_cost_minutes"]))
     else:
-        res = schedule(*args)
+        res = schedule(*args, group_days=int(rules["group_same_product_days"]))
     finish = {}
     for op in res.ops:
         finish[op["wo_id"]] = max(finish.get(op["wo_id"], op["end"]), op["end"])

@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It shows late orders, hours past target, changeovers and the finish time, plus every order that moves.
   Pick lists made by cuOpt also show the built-in route's walk.
 
+- **Saving changeovers** (Calendar page, PIC; defaults in `settings.yaml → aps`):
+  - `changeover_cost_minutes` (default 30): cuOpt counts each changeover like this many minutes late. The cuOpt
+    model now chooses which batch runs *immediately after* which on each station, so it counts real
+    changeovers.
+  - `group_same_product_days` (default 1): the built-in planner runs a batch of the same product next when its
+    due date is within this many days. It never overtakes an urgent order.
+
 ### Changed
 - `aps/engine.py`: the step-placing code is shared by both engines (no behaviour change).
 - Slow cuOpt actions (re-plan, compare, pick routes) wait up to 3 minutes in the browser instead of 8 seconds.

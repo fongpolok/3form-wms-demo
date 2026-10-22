@@ -16,12 +16,14 @@ const days = ref([])
 const msg = ref({ text: '', kind: 'ok' })
 const hol = ref({ date: '', name: '' })
 const staff = ref({ date: '', shift_code: 'A', workers: 6, note: '' })
+const rules = ref({ changeover_cost_minutes: 0, group_same_product_days: 0 })
 const DAY = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-watch(() => cal.data.value, (v) => { if (v) { shifts.value = JSON.parse(JSON.stringify(v.shifts)); days.value = [...v.working_days] } }, { immediate: true })
+watch(() => cal.data.value, (v) => { if (v) { shifts.value = JSON.parse(JSON.stringify(v.shifts)); days.value = [...v.working_days]; if (v.rules) rules.value = { ...v.rules } } }, { immediate: true })
 
 function toggleDay(i) { days.value = days.value.includes(i) ? days.value.filter((d) => d !== i) : [...days.value, i].sort() }
 const ok = (text) => { msg.value = { kind: 'ok', text } }
 const fail = (e) => { msg.value = { kind: 'error', text: e.message } }
+async function saveRules() { try { rules.value = await put('/api/v1/aps/rules', rules.value); ok(t('calendar.saved')); cal.reload() } catch (e) { fail(e) } }
 async function saveShifts() { try { await put('/api/v1/aps/calendar', { shifts: shifts.value, working_days: days.value }); ok(t('calendar.saved')); cal.reload() } catch (e) { fail(e) } }
 async function addHoliday() { try { await post('/api/v1/aps/holidays', hol.value); hol.value = { date: '', name: '' }; ok(t('calendar.saved')); cal.reload() } catch (e) { fail(e) } }
 async function removeHoliday(d) { try { await del(`/api/v1/aps/holidays/${d}`); cal.reload() } catch (e) { fail(e) } }
@@ -81,6 +83,17 @@ async function addStaff() { try { await post('/api/v1/aps/staffing', staff.value
   <section v-if="cal.data.value" class="card block">
     <h2>{{ t('calendar.rules') }}</h2>
     <p class="muted">{{ t('calendar.rulesText', cal.data.value.settings) }}</p>
+    <h3>{{ t('changeover.title') }}</h3>
+    <p class="muted small">{{ t('changeover.help') }}</p>
+    <form class="row rules" @submit.prevent="saveRules">
+      <label class="field"><span>{{ t('changeover.cost') }}</span>
+        <input v-model.number="rules.changeover_cost_minutes" type="number" min="0" max="600" :disabled="!session.can('PIC')" />
+        <small class="muted">{{ t('changeover.costHint') }}</small></label>
+      <label class="field"><span>{{ t('changeover.group') }}</span>
+        <input v-model.number="rules.group_same_product_days" type="number" min="0" max="14" :disabled="!session.can('PIC')" />
+        <small class="muted">{{ t('changeover.groupHint') }}</small></label>
+      <button v-if="session.can('PIC')" class="btn btn-primary">{{ t('common.save') }}</button>
+    </form>
   </section>
 </template>
 
@@ -88,6 +101,10 @@ async function addStaff() { try { await post('/api/v1/aps/staffing', staff.value
 .plain { border: 0; padding: 0; margin: 0; min-width: 0; }
 .stack h2, .block h2 { font-size: var(--text-lg); }
 .table input { min-height: 38px; }
+.block h3 { font-size: 1rem; margin: 16px 0 4px; }
+.small { font-size: var(--text-sm); }
+.rules { align-items: flex-end; gap: 16px; }
+.rules .field { max-width: 280px; }
 .days { gap: 14px; }
 .chk { display: flex; gap: 6px; align-items: center; }
 .chk input { width: auto; min-height: auto; }

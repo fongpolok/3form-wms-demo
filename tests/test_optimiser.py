@@ -198,3 +198,21 @@ def test_new_order_with_cuopt_replans_in_background(people, cuopt_url, monkeypat
     from mes import services as mes
     mes.create_work_order(people["pic"], {"product_code": "HC-50", "qty": 10, "due_date": "2026-12-01"}, source="ERP")
     assert len(started) == 1 and started[0][1].startswith("new order")
+
+
+def _switches(ops, ws):
+    seq = [o["product_code"] for o in sorted((o for o in ops if o["workstation"] == ws), key=lambda o: o["start"])]
+    return sum(a != b for a, b in zip(seq, seq[1:]))
+
+
+def test_cuopt_changeover_cost_groups_products(cuopt_url):
+    """Same dues for all; X and Y alternate in priority order. A changeover cost makes cuOpt group them."""
+    jobs = [_job(f"J{i}", 30, product="XY"[i % 2], due="2026-11-20", steps=("MIX",)) for i in range(6)]
+    res = plan_milp.schedule(_slots(), {"WS-01": "MIX"}, jobs, [], 5, 20, 1, lambda j: 2000, cuopt_url,
+                             changeover_cost=60)
+    assert _switches(res.ops, "WS-01") == 1
+    builtin = engine.schedule(_slots(), {"WS-01": "MIX"}, jobs, [], 5, 20)
+    assert _switches(builtin.ops, "WS-01") == 1        # priority sort already groups equal dues by product
+    spread = [_job(f"K{i}", 30, product="XY"[i % 2], due=f"2026-11-{5 + i:02d}", steps=("MIX",)) for i in range(6)]
+    assert _switches(engine.schedule(_slots(), {"WS-01": "MIX"}, spread, [], 5, 20).ops, "WS-01") == 5
+    assert _switches(engine.schedule(_slots(), {"WS-01": "MIX"}, spread, [], 5, 20, group_days=6).ops, "WS-01") == 1

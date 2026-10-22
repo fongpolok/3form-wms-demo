@@ -15,6 +15,12 @@ export default {
     },
     bins: { aisle: 'Aisle', position: 'Position', location: 'Location', setLocation: 'Save location', noLocation: 'not set' },
     alerts: { kind: { OPTIMISER_UNAVAILABLE: 'cuOpt unavailable' } },
+    changeover: {
+      title: 'Saving changeovers',
+      help: 'Changing product on a workstation costs cleaning and set-up time. These two settings decide how hard the planners try to avoid it.',
+      cost: 'Changeover cost (cuOpt), minutes', costHint: 'One changeover counts like being this many minutes late. 0 = ignore.',
+      group: 'Group same product (built-in), days', groupHint: 'Run the same product next if its due date is within this many days. Never ahead of urgent orders. 0 = off.',
+    },
     compare: {
       title: 'Compare: Built-in vs NVIDIA cuOpt', help: 'Plans the same open orders with both engines, right now. Nothing is saved or changed.',
       run: 'Compare now', running: 'Planning with both engines (about 20 seconds)…',
@@ -41,6 +47,12 @@ export default {
     },
     bins: { aisle: '通道', position: '位置', location: '位置', setLocation: '儲存位置', noLocation: '未設定' },
     alerts: { kind: { OPTIMISER_UNAVAILABLE: 'cuOpt 無法使用' } },
+    changeover: {
+      title: '減少換線',
+      help: '工作站轉換產品需要清潔及設定時間。這兩項設定決定排程引擎如何盡量避免換線。',
+      cost: '換線成本(cuOpt),分鐘', costHint: '每次換線等同延誤這麼多分鐘。0 = 不計算。',
+      group: '同產品合併(內建),日', groupHint: '如同一產品的到期日相差在此日數內,接著生產。不會排在緊急工單之前。0 = 關閉。',
+    },
     compare: {
       title: '比較:內建 vs NVIDIA cuOpt', help: '用兩個引擎即時為同一批未完成工單排程,不會儲存或更改任何資料。',
       run: '立即比較', running: '兩個引擎排程中(約 20 秒)…',

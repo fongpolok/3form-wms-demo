@@ -1,9 +1,9 @@
 """
 APS engine: finite-capacity forward scheduling on a slot grid.
 
-1. SORT batches:  Special/Urgent -> due date -> client priority -> product
-   (same-product batches sit together, which saves changeovers, without ever
-   jumping a due date) -> time received.
+1. SORT batches:  Special/Urgent -> due date -> client priority -> product -> time received.
+   Then, to save changeovers, a batch of the same product as the previous one may move up if its
+   due date is within aps.group_same_product_days of the batch it overtakes (never past an urgent one).
 2. FIT each batch's remaining steps, in order, into the first slots where
      * the slot is working time (calendar, shifts, breaks, holidays),
      * the workstation is free,
@@ -17,7 +17,7 @@ Pure Python, no database: inputs are plain dicts, so it is easy to test.
 """
 import math
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, timedelta
 
 
 @dataclass
@@ -54,6 +54,30 @@ class Result:
 
 def priority_key(job):
     return (not job.urgent, job.due_date, job.client_priority, job.product_code, job.created_at, job.batch_id)
+
+
+def sequence(jobs, group_days=0):
+    """Priority order, but a batch of the SAME product as the previous one may move up to save a
+    changeover when its due date is within `group_days` of the batch it overtakes. It never
+    overtakes a Special / Urgent batch, and an urgent batch never waits. group_days=0: plain priority order."""
+    todo = sorted(jobs, key=priority_key)
+    if not group_days:
+        return todo
+    out, last = [], None
+    while todo:
+        head = todo[0]
+        pick = head
+        if last is not None and head.product_code != last and not head.urgent:
+            head_due = date.fromisoformat(head.due_date)
+            for j in todo[1:]:
+                if j.product_code == last and not j.urgent and \
+                        (date.fromisoformat(j.due_date) - head_due).days <= group_days:
+                    pick = j
+                    break
+        todo.remove(pick)
+        out.append(pick)
+        last = pick.product_code
+    return out
 
 
 class Grid:
@@ -166,7 +190,7 @@ def stations_by_step(workstations):
     return by_step
 
 
-def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes, workers_per_station=1):
+def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes, workers_per_station=1, group_days=0):
     """workstations: {code: step_code}. Returns Result with ops (dicts) in time order."""
     res = Result()
     if not slots:
@@ -176,7 +200,7 @@ def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes,
     changeover_slots = math.ceil(changeover_minutes / slot_minutes) if changeover_minutes else 0
     batch_ready = load_fixed(grid, res, fixed)
     by_step = stations_by_step(workstations)
-    for job in sorted(jobs, key=priority_key):
+    for job in sequence(jobs, group_days):
         ready = max(batch_ready.get(job.batch_id, 0), grid.index(job.ready_after))
         for st in job.steps:
             ready = place(grid, res, job, st, by_step.get(st["step_code"], []), ready, changeover_slots,

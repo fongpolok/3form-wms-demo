@@ -217,3 +217,29 @@ def test_long_machine_stop_drafts_a_replan(people, factory):
     plans = check_long_stops()
     assert len(plans) == 1 and "stopped" in plans[0]["reason"]
     assert check_long_stops() == []          # only once per stop
+
+
+# ----------------------------------------------------------------- saving changeovers (v3.6.0)
+def test_builtin_groups_same_product_within_the_day_window():
+    jobs = [_job("A", 30, product="X", due="2026-11-05"), _job("B", 30, product="Y", due="2026-11-05"),
+            _job("C", 30, product="X", due="2026-11-06"), _job("D", 30, product="X", due="2026-11-09")]
+    assert [j.batch_id for j in engine.sequence(jobs, 0)] == ["A", "B", "C", "D"]
+    # C (same product, due 1 day later) moves up; D is 4 days later, so it does not jump B.
+    assert [j.batch_id for j in engine.sequence(jobs, 1)] == ["A", "C", "B", "D"]
+
+
+def test_grouping_never_overtakes_or_delays_urgent():
+    jobs = [_job("U1", 30, product="X", urgent=True, due="2026-11-09"), _job("U2", 30, product="Y", urgent=True,
+            due="2026-11-09"), _job("C", 30, product="X", due="2026-11-05")]
+    assert [j.batch_id for j in engine.sequence(jobs, 14)] == ["U1", "U2", "C"]
+
+
+def test_rules_are_pic_only_validated_and_used(people, clients):
+    from aps import rules
+    url = f"{API}/aps/rules"
+    assert clients["em"].put(url, {"changeover_cost_minutes": 5}, format="json").status_code == 403
+    assert clients["pic"].put(url, {"group_same_product_days": 99}, format="json").status_code == 400
+    r = clients["pic"].put(url, {"changeover_cost_minutes": 45, "group_same_product_days": 2}, format="json")
+    assert r.status_code == 200 and r.json() == {"changeover_cost_minutes": 45, "group_same_product_days": 2}
+    assert rules.get("group_same_product_days") == 2
+    assert clients["em"].get(f"{API}/aps/calendar").json()["rules"]["changeover_cost_minutes"] == 45
