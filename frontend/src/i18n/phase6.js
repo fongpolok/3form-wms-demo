@@ -21,6 +21,13 @@ export default {
       cost: 'Changeover cost (cuOpt), minutes', costHint: 'One changeover counts like being this many minutes late. 0 = ignore.',
       group: 'Group same product (built-in), days', groupHint: 'Run the same product next if its due date is within this many days. Never ahead of urgent orders. 0 = off.',
     },
+    chart: {
+      title: 'When each order finishes', subtitle: 'Orders by due date. The thin mark is the target finish (due date minus the late buffer). Hover or focus a row for details.',
+      target: 'Target finish', withCuopt: 'with cuOpt',
+      headline: 'cuOpt finishes {earlier} of {n} orders earlier and {later} later. Everything done: Built-in {b} · cuOpt {c}.',
+      sizeTitle: 'Problem size', orders: 'Orders', batches: 'Batches', steps: 'Steps to place', decisions: 'Decisions cuOpt weighed',
+      planTime: '{engine} planning time',
+    },
     compare: {
       title: 'Compare: Built-in vs NVIDIA cuOpt', help: 'Plans the same open orders with both engines, right now. Nothing is saved or changed.',
       run: 'Compare now', running: 'Planning with both engines (about 20 seconds)…',
@@ -52,6 +59,13 @@ export default {
       help: '工作站轉換產品需要清潔及設定時間。這兩項設定決定排程引擎如何盡量避免換線。',
       cost: '換線成本(cuOpt),分鐘', costHint: '每次換線等同延誤這麼多分鐘。0 = 不計算。',
       group: '同產品合併(內建),日', groupHint: '如同一產品的到期日相差在此日數內,接著生產。不會排在緊急工單之前。0 = 關閉。',
+    },
+    chart: {
+      title: '各工單完成時間', subtitle: '按到期日排列。細線為目標完成時間(到期日減延誤緩衝)。將游標移到或聚焦於一行可查看詳情。',
+      target: '目標完成', withCuopt: '(使用 cuOpt)',
+      headline: 'cuOpt 令 {n} 張工單中 {earlier} 張提早、{later} 張延後完成。全部完成:內建 {b} · cuOpt {c}。',
+      sizeTitle: '問題規模', orders: '工單', batches: '批次', steps: '需排程步驟', decisions: 'cuOpt 權衡的決定',
+      planTime: '{engine} 排程時間',
     },
     compare: {
       title: '比較:內建 vs NVIDIA cuOpt', help: '用兩個引擎即時為同一批未完成工單排程,不會儲存或更改任何資料。',

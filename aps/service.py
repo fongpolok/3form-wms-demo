@@ -10,6 +10,7 @@ Only one draft is open at a time; a newer draft supersedes the older one.
 """
 import logging
 import math
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -116,6 +117,7 @@ def compute(tenant, reason="manual", actor="system", now=None, engine_name=None)
     args = (slots, stations, jobs, fixed, slot, float(config.get("aps.changeover_minutes", 20)),
             int(config.get("aps.workers_per_station", 1)))
     rules = aps_rules.editable()
+    started = time.perf_counter()
     if engine["plan_engine"] == "cuopt":
         t0 = slots[0].start if slots else now
 
@@ -126,6 +128,8 @@ def compute(tenant, reason="manual", actor="system", now=None, engine_name=None)
                                  changeover_cost=float(rules["changeover_cost_minutes"]))
     else:
         res = schedule(*args, group_days=int(rules["group_same_product_days"]))
+    stats = {"seconds": round(time.perf_counter() - started, 3), "orders": len({j.wo_id for j in jobs}),
+             "batches": len(jobs), "steps": sum(len(j.steps) for j in jobs), "workstations": len(stations), **res.stats}
     finish = {}
     for op in res.ops:
         finish[op["wo_id"]] = max(finish.get(op["wo_id"], op["end"]), op["end"])
@@ -147,7 +151,7 @@ def compute(tenant, reason="manual", actor="system", now=None, engine_name=None)
             "tenant_openid": tenant, "status": DRAFT, "created_at": now, "created_by": actor, "reason": reason,
             "horizon_start": slots[0].start if slots else now, "horizon_days": int(config.get("aps.horizon_days", 14)),
             "frozen_until": now + timedelta(hours=float(config.get("aps.frozen_hours", 4))),
-            "engine": engine["plan_engine"], "ops": res.ops, "orders": orders, "blocked": blocked, "unscheduled": res.unscheduled,
+            "engine": engine["plan_engine"], "engine_stats": stats, "ops": res.ops, "orders": orders, "blocked": blocked, "unscheduled": res.unscheduled,
             "stations": [{"code": c, "step_code": s} for c, s in stations.items()],
             "working": working_windows(slots, slot)}
     plan["diff"] = diff(published, plan)
@@ -164,7 +168,7 @@ def summary(plan):
             "hours_late": round(sum(max(0.0, -(o["slack_hours"] or 0)) for o in plan["orders"]), 1),
             "changeovers": len(setups), "changeover_minutes": sum(o["setup_minutes"] for o in setups),
             "all_done_by": max((o["end"] for o in plan["ops"]), default=None),
-            "unscheduled": len(plan["unscheduled"])}
+            "unscheduled": len(plan["unscheduled"]), "size": plan.get("engine_stats", {})}
 
 
 def compare(tenant, now=None):
@@ -185,7 +189,19 @@ def compare(tenant, now=None):
                            "builtin_finish": old["planned_finish"], "cuopt_finish": o["planned_finish"],
                            "delta_hours": delta, "builtin_late": old["late_risk"], "cuopt_late": o["late_risk"]})
     orders.sort(key=lambda o: o["delta_hours"])
-    return {"computed_at": now, "builtin": summary(a), "cuopt": summary(b), "orders": orders}
+    # Every order, for the chart: when each engine finishes it, and its target (due date minus the late buffer).
+    buffer = timedelta(hours=float(config.get("aps.late_buffer_hours", 4)))
+    chart = []
+    for o in b["orders"]:
+        old = fa.get(o["wo_id"])
+        if old:
+            chart.append({"wo_id": o["wo_id"], "product_name": o["product_name"] or o["product_code"],
+                          "urgent": o["urgent"], "due_date": o["due_date"],
+                          "target": cal.day_end(cal.parse_date(o["due_date"])) - buffer,
+                          "builtin_finish": old["planned_finish"], "cuopt_finish": o["planned_finish"],
+                          "builtin_late": old["late_risk"], "cuopt_late": o["late_risk"]})
+    chart.sort(key=lambda o: (o["due_date"], o["wo_id"]))
+    return {"computed_at": now, "builtin": summary(a), "cuopt": summary(b), "orders": orders, "chart": chart}
 
 
 def working_windows(slots, slot_minutes):

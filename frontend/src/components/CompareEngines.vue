@@ -1,9 +1,11 @@
 <script setup>
 // Plan page: the same open orders planned by Built-in and by NVIDIA cuOpt, side by side (nothing is saved).
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { post, SLOW_MS } from '../api/client.js'
 import { fmtDateTime } from '../i18n/index.js'
+import ChartFrame from './charts/ChartFrame.vue'
+import DumbbellChart from './charts/DumbbellChart.vue'
 
 const { t } = useI18n()
 const result = ref(null)
@@ -25,6 +27,15 @@ function winner(row) {
   if (a === b) return ''
   return (row.better === 'earlier' ? new Date(b) < new Date(a) : b < a) ? 'cuopt' : 'builtin'
 }
+const secs = (v) => (v == null ? '–' : v < 0.1 ? '< 0.1 s' : `${v.toFixed(1)} s`)
+const headline = computed(() => {
+  const r = result.value
+  if (!r) return ''
+  const earlier = r.chart.filter((o) => new Date(o.cuopt_finish) < new Date(o.builtin_finish)).length
+  const later = r.chart.filter((o) => new Date(o.cuopt_finish) > new Date(o.builtin_finish)).length
+  return t('chart.headline', { earlier, later, n: r.chart.length, b: fmtDateTime(r.builtin.all_done_by), c: fmtDateTime(r.cuopt.all_done_by) })
+})
+const hoursApart = (o) => Math.round((new Date(o.cuopt_finish) - new Date(o.builtin_finish)) / 360000) / 10
 const hrs = (h) => `${h > 0 ? '+' : ''}${h} h`
 </script>
 
@@ -39,6 +50,30 @@ const hrs = (h) => `${h > 0 ? '+' : ''}${h} h`
     </div>
     <p v-if="error" class="notice notice-error" role="alert">{{ error }}</p>
     <template v-if="result">
+      <p class="headline">{{ headline }}</p>
+      <dl class="size" :aria-label="t('chart.sizeTitle')">
+        <div><dt>{{ t('chart.orders') }}</dt><dd>{{ result.cuopt.size.orders }}</dd></div>
+        <div><dt>{{ t('chart.batches') }}</dt><dd>{{ result.cuopt.size.batches }}</dd></div>
+        <div><dt>{{ t('chart.steps') }}</dt><dd>{{ result.cuopt.size.steps }}</dd></div>
+        <div><dt>{{ t('chart.decisions') }}</dt><dd>{{ (result.cuopt.size.decisions ?? 0).toLocaleString() }}</dd></div>
+        <div><dt><span class="mk-dot builtin"></span>{{ t('chart.planTime', { engine: t('optimiser.builtin') }) }}</dt><dd>{{ secs(result.builtin.size.seconds) }}</dd></div>
+        <div><dt><span class="mk-dot cuopt"></span>{{ t('chart.planTime', { engine: t('optimiser.cuopt') }) }}</dt><dd>{{ secs(result.cuopt.size.seconds) }}</dd></div>
+      </dl>
+      <ChartFrame :title="t('chart.title')" :subtitle="t('chart.subtitle')">
+        <DumbbellChart :rows="result.chart" />
+        <template #table>
+          <table class="table">
+            <thead><tr><th>WO</th><th>{{ t('wo.productName') }}</th><th>{{ t('chart.target') }}</th><th>{{ t('optimiser.builtin') }}</th>
+              <th>{{ t('optimiser.cuopt') }}</th><th>{{ t('compare.change') }}</th></tr></thead>
+            <tbody><tr v-for="o in result.chart" :key="o.wo_id"><td class="mono">{{ o.wo_id }}</td><td>{{ o.product_name }}</td>
+              <td>{{ fmtDateTime(o.target) }}</td>
+              <td>{{ fmtDateTime(o.builtin_finish) }} <span v-if="o.builtin_late" class="pill pill-alarm">{{ t('plan.lateRisk') }}</span></td>
+              <td>{{ fmtDateTime(o.cuopt_finish) }} <span v-if="o.cuopt_late" class="pill pill-alarm">{{ t('plan.lateRisk') }}</span></td>
+              <td><span v-if="hoursApart(o)" :class="['pill', hoursApart(o) < 0 ? 'pill-ok' : 'pill-warn']">
+                {{ hoursApart(o) < 0 ? t('compare.earlier') : t('compare.later') }} {{ hrs(hoursApart(o)) }}</span><span v-else>–</span></td></tr></tbody>
+          </table>
+        </template>
+      </ChartFrame>
       <div class="table-wrap">
         <table class="table kpis">
           <thead><tr><th></th><th>{{ t('optimiser.builtin') }}</th><th>{{ t('optimiser.cuopt') }}</th></tr></thead>
@@ -47,23 +82,6 @@ const hrs = (h) => `${h > 0 ? '+' : ''}${h} h`
               <th scope="row">{{ t(`compare.${r.key}`) }}</th>
               <td :class="{ win: winner(r) === 'builtin' }">{{ show(r, result.builtin[r.key]) }}</td>
               <td :class="{ win: winner(r) === 'cuopt' }">{{ show(r, result.cuopt[r.key]) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <h3>{{ t('compare.moved', { n: result.orders.length }) }}</h3>
-      <p v-if="!result.orders.length" class="muted">{{ t('compare.same') }}</p>
-      <div v-else class="table-wrap">
-        <table class="table">
-          <thead><tr><th>WO</th><th>{{ t('wo.productName') }}</th><th>{{ t('wo.due') }}</th><th>{{ t('optimiser.builtin') }}</th>
-            <th>{{ t('optimiser.cuopt') }}</th><th>{{ t('compare.change') }}</th></tr></thead>
-          <tbody>
-            <tr v-for="o in result.orders" :key="o.wo_id">
-              <td class="mono">{{ o.wo_id }} <span v-if="o.urgent" class="pill pill-alarm">{{ t('progress.urgent') }}</span></td>
-              <td>{{ o.product_name }}</td><td>{{ o.due_date }}</td>
-              <td>{{ fmtDateTime(o.builtin_finish) }} <span v-if="o.builtin_late" class="pill pill-alarm">{{ t('plan.lateRisk') }}</span></td>
-              <td>{{ fmtDateTime(o.cuopt_finish) }} <span v-if="o.cuopt_late" class="pill pill-alarm">{{ t('plan.lateRisk') }}</span></td>
-              <td><span :class="['pill', o.delta_hours < 0 ? 'pill-ok' : 'pill-warn']">{{ o.delta_hours < 0 ? t('compare.earlier') : t('compare.later') }} {{ hrs(o.delta_hours) }}</span></td>
             </tr>
           </tbody>
         </table>
@@ -84,4 +102,12 @@ const hrs = (h) => `${h > 0 ? '+' : ''}${h} h`
 .win::after { content: ' ✓'; }
 .small { font-size: var(--text-sm); }
 td.mono, td .pill { white-space: nowrap; }
+.headline { font-size: 1.0625rem; font-weight: 600; color: var(--ink); margin: 0; }
+.size { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; }
+.size div { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.size dt { font-size: 0.8125rem; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.size dd { margin: 2px 0 0; font-size: 1.25rem; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; }
+.mk-dot { width: 10px; height: 10px; flex: none; }
+.mk-dot.builtin { background: var(--chart-builtin); border-radius: 50%; }
+.mk-dot.cuopt { background: var(--chart-1); transform: rotate(45deg); border-radius: 2px; width: 9px; height: 9px; }
 </style>

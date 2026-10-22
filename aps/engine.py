@@ -50,6 +50,7 @@ class Fixed:
 class Result:
     ops: list = field(default_factory=list)
     unscheduled: list = field(default_factory=list)
+    stats: dict = field(default_factory=dict)      # problem size (filled by the cuOpt engine)
 
 
 def priority_key(job):

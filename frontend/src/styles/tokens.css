@@ -36,6 +36,7 @@
   --chart-1-text: #ffffff; /* text inside a chart-1 fill: 7.0:1 */
   --chart-2-text: #111827; /* text inside a chart-2 fill: 5.5:1 */
   --chart-off: #e9edf3;    /* non-working time on time charts */
+  --chart-builtin: #eb6834; /* engine comparison: Built-in (cuOpt uses --chart-1). Pair validated: CVD dE 29.3 */
 
   --font-body: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   --font-display: 'Source Serif 4', 'Noto Serif TC', Georgia, serif;
@@ -81,6 +82,8 @@
     --chart-1-text: #0b1220;   /* 6.0:1 */
     --chart-2-text: #ffffff;   /* 5.9:1 */
     --chart-off: #0a1020;
+  --chart-builtin: #d95926;
+    --chart-builtin: #d95926; /* pair with #5592ec validated on #121a2b: CVD dE 27.2 */
     color-scheme: dark;
   }
 }

@@ -201,6 +201,7 @@ def schedule(slots, workstations, jobs, fixed, slot_minutes, changeover_minutes,
         return res
     model, ops = build(grid, jobs, batch_ready, station_free, by_step, changeover_slots * slot_minutes, due_slot,
                        changeover_cost)
+    res.stats = {"decisions": model.binaries(), "variables": len(model.names), "constraints": len(model.rows)}
     answer = cuopt.solve(url, token, model.to_cuopt(float(config.get("optimiser.cuopt.time_limit_seconds", 20))))
     solution = answer.get("solution") or {}
     values = solution.get("primal_solution")

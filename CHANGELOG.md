@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It shows late orders, hours past target, changeovers and the finish time, plus every order that moves.
   Pick lists made by cuOpt also show the built-in route's walk.
 
+- **Comparison chart** (Plan page → Compare): "When each order finishes" dumbbell chart. Built-in is an orange
+  circle, cuOpt a blue diamond, the target finish a thin mark; it has a legend, a hover/focus tooltip and a
+  Table view. A one-line headline sums it up. Problem-size tiles show orders, batches, steps, the decisions cuOpt
+  weighed, and each engine's planning time. Colours were validated for colour blindness in light and dark
+  (CVD ΔE 29.3 / 27.2).
+- `tools/benchmark_engines.py`: both engines on sample factories of 5 → 40 orders; writes
+  `docs/plan/engine-benchmark.json`. Set `CUOPT_URL` to benchmark a real cuOpt server.
 - **Saving changeovers** (Calendar page, PIC; defaults in `settings.yaml → aps`):
   - `changeover_cost_minutes` (default 30): cuOpt counts each changeover like this many minutes late. The cuOpt
     model now chooses which batch runs *immediately after* which on each station, so it counts real

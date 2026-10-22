@@ -1,0 +1,123 @@
+{
+ "run_at": "2026-10-22T23:43+08:00",
+ "solver": "pretend cuOpt server (HiGHS on CPU)",
+ "time_limit_seconds": 20.0,
+ "workstations": 6,
+ "changeover_minutes": 20,
+ "rows": [
+  {
+   "orders": 5,
+   "steps": 30,
+   "builtin": {
+    "all_done_hours": 14.8,
+    "hours_late": 0.0,
+    "changeovers": 18,
+    "unplaced": 0,
+    "seconds": 0.0
+   },
+   "decisions": 180,
+   "cuopt": {
+    "all_done_hours": 14.4,
+    "hours_late": 0.0,
+    "changeovers": 6,
+    "unplaced": 0,
+    "seconds": 5.0
+   }
+  },
+  {
+   "orders": 10,
+   "steps": 60,
+   "builtin": {
+    "all_done_hours": 34.8,
+    "hours_late": 0.0,
+    "changeovers": 36,
+    "unplaced": 0,
+    "seconds": 0.001
+   },
+   "decisions": 660,
+   "cuopt": {
+    "all_done_hours": 39.4,
+    "hours_late": 0.0,
+    "changeovers": 15,
+    "unplaced": 0,
+    "seconds": 21.0
+   }
+  },
+  {
+   "orders": 15,
+   "steps": 90,
+   "builtin": {
+    "all_done_hours": 53.3,
+    "hours_late": 0.0,
+    "changeovers": 36,
+    "unplaced": 0,
+    "seconds": 0.001
+   },
+   "decisions": 1440,
+   "cuopt": {
+    "all_done_hours": 61.6,
+    "hours_late": 0.0,
+    "changeovers": 35,
+    "unplaced": 0,
+    "seconds": 21.0
+   }
+  },
+  {
+   "orders": 20,
+   "steps": 120,
+   "builtin": {
+    "all_done_hours": 59.0,
+    "hours_late": 0.0,
+    "changeovers": 36,
+    "unplaced": 0,
+    "seconds": 0.004
+   },
+   "decisions": 2520,
+   "cuopt": {
+    "all_done_hours": 59.3,
+    "hours_late": 0.0,
+    "changeovers": 60,
+    "unplaced": 0,
+    "seconds": 21.0
+   }
+  },
+  {
+   "orders": 30,
+   "steps": 180,
+   "builtin": {
+    "all_done_hours": 81.8,
+    "hours_late": 0.0,
+    "changeovers": 48,
+    "unplaced": 0,
+    "seconds": 0.007
+   },
+   "decisions": 5580,
+   "cuopt": {
+    "all_done_hours": 85.4,
+    "hours_late": 0.0,
+    "changeovers": 90,
+    "unplaced": 0,
+    "seconds": 21.1
+   }
+  },
+  {
+   "orders": 40,
+   "steps": 240,
+   "builtin": {
+    "all_done_hours": 108.0,
+    "hours_late": 0.0,
+    "changeovers": 66,
+    "unplaced": 0,
+    "seconds": 0.007
+   },
+   "decisions": 9840,
+   "cuopt": {
+    "all_done_hours": 120.4,
+    "hours_late": 26.6,
+    "changeovers": 150,
+    "unplaced": 0,
+    "seconds": 21.1
+   }
+  }
+ ]
+}
