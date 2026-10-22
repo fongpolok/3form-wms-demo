@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { get, post } from '../../api/client.js'
+import { get, post, SLOW_MS } from '../../api/client.js'
 import { useSession } from '../../composables/session.js'
 import { usePolled } from '../../composables/poll.js'
 import PageHead from '../../components/PageHead.vue'
@@ -21,7 +21,7 @@ const pickError = ref('')
 async function togglePick(w) {
   if (pickFor.value === w.wo_id) { pickFor.value = ''; return }
   pickFor.value = w.wo_id; pick.value = null; pickError.value = ''
-  try { pick.value = await get(`/api/v1/inventory/pick-route/order/${encodeURIComponent(w.wo_id)}`) }
+  try { pick.value = await get(`/api/v1/inventory/pick-route/order/${encodeURIComponent(w.wo_id)}`, { timeoutMs: SLOW_MS }) }
   catch (e) { pickError.value = e.message }
 }
 

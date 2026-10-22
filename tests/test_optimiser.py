@@ -167,3 +167,34 @@ def test_optimiser_settings_are_pic_only_and_validated(people, clients, cuopt_ur
     assert ok.status_code == 200 and ok.json()["has_token"] and "t0k" not in ok.content.decode()
     test = clients["pic"].post(f"{url}/test").json()
     assert test["ok"] and "mock" in test["reply"]
+
+
+def test_compare_plans_both_engines_and_saves_nothing(people, clients, cuopt_url):
+    from core import mongo
+    from mes import services as mes
+    tenant = people["pic"].tenant_openid
+    for i in range(3):
+        mes.create_work_order(people["pic"], {"product_code": "HC-50" if i % 2 else "SR-30", "qty": 40,
+                                              "due_date": "2026-12-01"}, source="ERP")
+    assert clients["em"].post(f"{API}/aps/compare").status_code == 400          # no cuOpt address yet
+    OptimiserSetting.objects.create(tenant_openid=tenant, cuopt_url=cuopt_url)  # engine stays built-in
+    n_plans = mongo.db().plans.count_documents({})
+    r = clients["em"].post(f"{API}/aps/compare")
+    body = r.json()
+    assert r.status_code == 200 and body["builtin"]["engine"] == "builtin" and body["cuopt"]["engine"] == "cuopt"
+    for side in ("builtin", "cuopt"):
+        assert {"late_orders", "hours_late", "changeovers", "changeover_minutes", "all_done_by"} <= set(body[side])
+    assert mongo.db().plans.count_documents({}) == n_plans
+    assert clients["worker"].post(f"{API}/aps/compare").status_code == 403
+
+
+def test_new_order_with_cuopt_replans_in_background(people, cuopt_url, monkeypatch):
+    """Creating an order must not wait for cuOpt: the re-plan runs in a background thread."""
+    from aps import triggers
+    started = []
+    monkeypatch.setattr(triggers.threading, "Thread",
+                        lambda target, args, daemon: type("T", (), {"start": lambda self: started.append(args)})())
+    OptimiserSetting.objects.create(tenant_openid=people["pic"].tenant_openid, plan_engine="cuopt", cuopt_url=cuopt_url)
+    from mes import services as mes
+    mes.create_work_order(people["pic"], {"product_code": "HC-50", "qty": 10, "due_date": "2026-12-01"}, source="ERP")
+    assert len(started) == 1 and started[0][1].startswith("new order")

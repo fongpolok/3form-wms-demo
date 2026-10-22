@@ -13,6 +13,7 @@ const fmtLines = (lines) => lines.map((l) => `${l.goods_code} · ${l.lot_number 
       <h3 class="grow">{{ t('pick.title') }}</h3>
       <span class="pill pill-info">{{ t('pick.engine') }}: {{ route.engine === 'cuopt' ? t('optimiser.cuopt') : t('optimiser.builtin') }}</span>
       <span class="pill">{{ t('pick.distance') }}: {{ route.distance_m }} m</span>
+      <span v-if="route.builtin_distance_m != null" class="pill pill-info">{{ t('pick.builtinWalk', { m: route.builtin_distance_m }) }}</span>
     </div>
     <p class="muted small">{{ t('pick.depot', route.depot) }}</p>
     <p v-for="s in route.shortages" :key="s.goods_code" class="notice notice-error small">{{ t('pick.short') }}: {{ s.goods_code }} (−{{ s.short_by }})</p>

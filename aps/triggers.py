@@ -1,6 +1,7 @@
 """Events that ask the APS for a new plan. A planner problem must never block
 production, so every trigger catches and logs its own errors."""
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 
 from core import config, mongo
@@ -12,9 +13,16 @@ def _enabled():
     return bool(config.get("aps.auto_replan", True))
 
 
-def replan_safely(tenant, reason, actor="system", urgent=False):
+def replan_safely(tenant, reason, actor="system", urgent=False, background=False):
+    """background=True: when the slow cuOpt engine is chosen, plan in a separate thread so the
+    person's click (new order, material released) returns at once; the plan appears a little later."""
     if not _enabled():
         return None
+    if background:
+        from optimiser.service import settings_for
+        if settings_for(tenant)["plan_engine"] == "cuopt":
+            threading.Thread(target=_replan_in_thread, args=(tenant, reason, actor, urgent), daemon=True).start()
+            return None
     try:
         from .service import request_replan
         return request_replan(tenant, reason, actor, urgent=urgent)
@@ -23,18 +31,26 @@ def replan_safely(tenant, reason, actor="system", urgent=False):
         return None
 
 
+def _replan_in_thread(tenant, reason, actor, urgent):
+    from django.db import connection
+    try:
+        replan_safely(tenant, reason, actor, urgent)
+    finally:
+        connection.close()
+
+
 def on_new_order(tenant, wo):
     if wo.get("status") == "waiting_material":
         return None          # cannot be planned until material is there
     return replan_safely(tenant, f"new order {wo['wo_id']}", wo.get("created_by", "system"),
-                         urgent=bool(wo.get("special_urgent")))
+                         urgent=bool(wo.get("special_urgent")), background=True)
 
 
 def on_material_released(tenant, wo_ids):
     if not wo_ids:
         return None
     urgent = bool(mongo.db().work_orders.find_one({"wo_id": {"$in": wo_ids}, "special_urgent": True}))
-    return replan_safely(tenant, f"material released for {', '.join(wo_ids)}", urgent=urgent)
+    return replan_safely(tenant, f"material released for {', '.join(wo_ids)}", urgent=urgent, background=True)
 
 
 def check_long_stops(now=None):

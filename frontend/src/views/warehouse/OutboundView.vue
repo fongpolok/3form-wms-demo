@@ -2,7 +2,7 @@
 // Ship to a client from stock. Shows which lots will be picked (FEFO / FIFO) first, and the walking order.
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { get, post } from '../../api/client.js'
+import { get, post, SLOW_MS } from '../../api/client.js'
 import { usePolled } from '../../composables/poll.js'
 import PageHead from '../../components/PageHead.vue'
 import GoodsPicker from '../../components/GoodsPicker.vue'
@@ -18,7 +18,7 @@ const msg = ref({ text: '', kind: 'ok' })
 
 watch(() => [line.value.goods_code, line.value.qty], () => { route.value = null })
 async function planRoute() {
-  try { route.value = await post('/api/v1/inventory/pick-route', { lines: [line.value] }); msg.value = { text: '', kind: 'ok' } }
+  try { route.value = await post('/api/v1/inventory/pick-route', { lines: [line.value] }, { timeoutMs: SLOW_MS }); msg.value = { text: '', kind: 'ok' } }
   catch (e) { route.value = null; msg.value = { kind: 'error', text: e.message } }
 }
 watch(() => line.value.goods_code, async (code) => {

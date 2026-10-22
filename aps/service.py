@@ -100,7 +100,7 @@ def collect(tenant, now, published=None):
     return wos, jobs, fixed, blocked
 
 
-def compute(tenant, reason="manual", actor="system", now=None):
+def compute(tenant, reason="manual", actor="system", now=None, engine_name=None):
     now = now or _now()
     db = mongo.db()
     published = db.plans.find_one({"tenant_openid": tenant, "status": PUBLISHED}, sort=[("published_at", -1)])
@@ -110,6 +110,8 @@ def compute(tenant, reason="manual", actor="system", now=None):
     stations = {w["code"]: w["step_code"] for w in list_workstations()}
     buffer = timedelta(hours=float(config.get("aps.late_buffer_hours", 4)))
     engine = optimiser.settings_for(tenant)
+    if engine_name:                      # comparison: run this engine regardless of the setting
+        engine["plan_engine"] = engine_name
     args = (slots, stations, jobs, fixed, slot, float(config.get("aps.changeover_minutes", 20)),
             int(config.get("aps.workers_per_station", 1)))
     if engine["plan_engine"] == "cuopt":
@@ -149,6 +151,38 @@ def compute(tenant, reason="manual", actor="system", now=None):
     logger.info("Plan %s computed (%s): %d ops, %d late, %d blocked", plan["plan_id"], reason, len(res.ops),
                 sum(o["late_risk"] for o in orders), len(blocked))
     return plan
+
+
+def summary(plan):
+    """Headline numbers for comparing two plans of the same moment."""
+    planned = [o for o in plan["ops"] if o["kind"] == "planned"]
+    setups = [o for o in planned if o.get("setup_minutes")]
+    return {"engine": plan["engine"], "late_orders": sum(o["late_risk"] for o in plan["orders"]),
+            "hours_late": round(sum(max(0.0, -(o["slack_hours"] or 0)) for o in plan["orders"]), 1),
+            "changeovers": len(setups), "changeover_minutes": sum(o["setup_minutes"] for o in setups),
+            "all_done_by": max((o["end"] for o in plan["ops"]), default=None),
+            "unscheduled": len(plan["unscheduled"])}
+
+
+def compare(tenant, now=None):
+    """Plan the same open work with both engines (nothing is saved). Raises CuoptUnavailable if cuOpt is down."""
+    now = now or _now()
+    plans = {e: compute(tenant, "comparison", now=now, engine_name=e) for e in ("builtin", "cuopt")}
+    a, b = plans["builtin"], plans["cuopt"]
+    fa = {o["wo_id"]: o for o in a["orders"]}
+    orders = []
+    for o in b["orders"]:
+        old = fa.get(o["wo_id"])
+        if not old or not old["planned_finish"] or not o["planned_finish"]:
+            continue
+        delta = round((o["planned_finish"] - old["planned_finish"]).total_seconds() / 3600, 1)
+        if abs(delta) >= 0.1:
+            orders.append({"wo_id": o["wo_id"], "product_name": o["product_name"] or o["product_code"],
+                           "client": o["client"], "due_date": o["due_date"], "urgent": o["urgent"],
+                           "builtin_finish": old["planned_finish"], "cuopt_finish": o["planned_finish"],
+                           "delta_hours": delta, "builtin_late": old["late_risk"], "cuopt_late": o["late_risk"]})
+    orders.sort(key=lambda o: o["delta_hours"])
+    return {"computed_at": now, "builtin": summary(a), "cuopt": summary(b), "orders": orders}
 
 
 def working_windows(slots, slot_minutes):

@@ -3,12 +3,13 @@
 // with LATE RISK, orders blocked by material, and Accept / Reject for a draft.
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { get, post } from '../../api/client.js'
+import { get, post, SLOW_MS } from '../../api/client.js'
 import { fmtDateTime } from '../../i18n/index.js'
 import { usePolled } from '../../composables/poll.js'
 import PageHead from '../../components/PageHead.vue'
 import Icon from '../../components/Icon.vue'
 import GanttChart from '../../components/charts/GanttChart.vue'
+import CompareEngines from '../../components/CompareEngines.vue'
 
 const { t } = useI18n()
 const published = usePolled(() => get('/api/v1/aps/plan?status=published'), 30000)
@@ -26,7 +27,7 @@ const stationNames = computed(() => Object.fromEntries((stations.data.value || [
 
 async function replan() {
   busy.value = true
-  try { await post('/api/v1/aps/replan', {}); await draft.reload(); show.value = 'draft'; msg.value = { kind: 'ok', text: t('plan.draftReady') } }
+  try { await post('/api/v1/aps/replan', {}, { timeoutMs: SLOW_MS }); await draft.reload(); show.value = 'draft'; msg.value = { kind: 'ok', text: t('plan.draftReady') } }
   catch (e) { msg.value = { kind: 'error', text: e.message } } finally { busy.value = false }
 }
 async function decide(accept) {
@@ -50,6 +51,8 @@ const hrs = (h) => (h == null ? '–' : `${h > 0 ? '+' : ''}${h} h`)
     <button class="btn btn-primary" :disabled="busy" @click="replan">{{ t('plan.replan') }}</button>
   </PageHead>
   <p v-if="msg.text" :class="['notice', msg.kind === 'ok' ? 'notice-ok' : 'notice-error']" role="status">{{ msg.text }}</p>
+
+  <CompareEngines />
 
   <!-- Draft waiting for approval -->
   <section v-if="draft.data.value" class="card stack draft">

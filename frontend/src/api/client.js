@@ -20,6 +20,8 @@ function headers(extra = {}) {
   return h
 }
 
+// Slow work (planning with cuOpt, comparisons) passes a longer timeoutMs; see SLOW_MS.
+export const SLOW_MS = 180000
 export async function api(path, { method = 'GET', body, raw = false, timeoutMs = 8000 } = {}) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
@@ -43,8 +45,8 @@ export async function api(path, { method = 'GET', body, raw = false, timeoutMs =
   return data
 }
 
-export const get = (p) => api(p)
-export const post = (p, body) => api(p, { method: 'POST', body })
+export const get = (p, opts = {}) => api(p, opts)
+export const post = (p, body, opts = {}) => api(p, { method: 'POST', body, ...opts })
 export const patch = (p, body) => api(p, { method: 'PATCH', body })
 export const put = (p, body) => api(p, { method: 'PUT', body })
 export const del = (p) => api(p, { method: 'DELETE' })

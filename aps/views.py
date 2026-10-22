@@ -39,6 +39,20 @@ class ReplanView(APIView):
         return Response(plan, status=201)
 
 
+class CompareView(APIView):
+    """Plan the same open work with Built-in and with cuOpt, side by side. Nothing is saved."""
+    permission_classes = [IsManagerOrAbove]
+
+    def post(self, request):
+        from optimiser.service import settings_for
+        if not settings_for(request.user.tenant_openid)["cuopt_url"]:
+            return _err("Set the cuOpt server address in Settings → Integrations → Optimiser first.")
+        try:
+            return Response(service.compare(request.user.tenant_openid))
+        except service.CuoptUnavailable as exc:
+            return _err(f"Cannot compare: {exc}", 503)
+
+
 class PlanDecisionView(APIView):
     permission_classes = [IsManagerOrAbove]
 

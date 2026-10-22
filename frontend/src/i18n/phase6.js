@@ -11,10 +11,19 @@ export default {
     pick: {
       route: 'Plan pick route', title: 'Pick route', engine: 'Engine', distance: 'Walk', stop: 'Stop', bin: 'Bin',
       where: 'Aisle · position', items: 'Pick', unlocated: 'Not on the map (add aisle and position on the Bins page)',
-      short: 'Not enough stock', batch: 'Pick list', depot: 'Start and finish at aisle {aisle}, position {position}.',
+      short: 'Not enough stock', batch: 'Pick list', builtinWalk: 'Built-in route: {m} m', depot: 'Start and finish at aisle {aisle}, position {position}.',
     },
     bins: { aisle: 'Aisle', position: 'Position', location: 'Location', setLocation: 'Save location', noLocation: 'not set' },
     alerts: { kind: { OPTIMISER_UNAVAILABLE: 'cuOpt unavailable' } },
+    compare: {
+      title: 'Compare: Built-in vs NVIDIA cuOpt', help: 'Plans the same open orders with both engines, right now. Nothing is saved or changed.',
+      run: 'Compare now', running: 'Planning with both engines (about 20 seconds)…',
+      late_orders: 'Orders at risk of being late', hours_late: 'Total hours past target', changeovers: 'Product changeovers',
+      changeover_minutes: 'Changeover time', all_done_by: 'Everything finished by',
+      moved: 'Orders that finish at a different time ({n})', same: 'Both engines give every order the same finish time.',
+      change: 'With cuOpt', earlier: 'earlier', later: 'later',
+      howToUse: 'To use the cuOpt plan: choose cuOpt for the production plan in Settings → Integrations, then Re-plan now and Accept the draft.',
+    },
     plan: { engine: 'Planned by', engineBuiltin: 'built-in planner', engineCuopt: 'NVIDIA cuOpt' },
   },
   'zh-hant': {
@@ -28,10 +37,19 @@ export default {
     pick: {
       route: '規劃揀貨路線', title: '揀貨路線', engine: '引擎', distance: '步行', stop: '站', bin: '貨位',
       where: '通道 · 位置', items: '揀取', unlocated: '未在地圖上(請在「貨位」頁加入通道及位置)',
-      short: '庫存不足', batch: '揀貨單', depot: '由通道 {aisle}、位置 {position} 出發並返回。',
+      short: '庫存不足', batch: '揀貨單', builtinWalk: '內建路線:{m} 米', depot: '由通道 {aisle}、位置 {position} 出發並返回。',
     },
     bins: { aisle: '通道', position: '位置', location: '位置', setLocation: '儲存位置', noLocation: '未設定' },
     alerts: { kind: { OPTIMISER_UNAVAILABLE: 'cuOpt 無法使用' } },
+    compare: {
+      title: '比較:內建 vs NVIDIA cuOpt', help: '用兩個引擎即時為同一批未完成工單排程,不會儲存或更改任何資料。',
+      run: '立即比較', running: '兩個引擎排程中(約 20 秒)…',
+      late_orders: '有延誤風險的工單', hours_late: '超出目標的總時數', changeovers: '產品換線次數',
+      changeover_minutes: '換線時間', all_done_by: '全部完成時間',
+      moved: '完成時間不同的工單({n})', same: '兩個引擎給所有工單的完成時間相同。',
+      change: '使用 cuOpt', earlier: '提早', later: '延後',
+      howToUse: '如要採用 cuOpt 排程:在「設定 → 系統整合」把生產排程設為 cuOpt,再按「立即重新排程」並接受草稿。',
+    },
     plan: { engine: '排程引擎', engineBuiltin: '內建排程', engineCuopt: 'NVIDIA cuOpt' },
   },
 }

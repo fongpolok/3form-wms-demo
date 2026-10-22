@@ -77,6 +77,8 @@ def pick_list(tenant, lines, purpose):
         raise
     if cfg["pick_engine"] == "cuopt":
         close_unavailable(tenant, "pick route")
+        # For comparison: the built-in route's walk on the same bins (cheap, always available).
+        route["builtin_distance_m"] = pick.plan_route(stops, "builtin")["distance_m"]
     route.update({"purpose": purpose, "shortages": short})
     return route
 
