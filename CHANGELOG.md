@@ -31,8 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (HiGHS), for testing without a GPU.
 - The demo factory gets a sample warehouse map (raw material in aisles 1-2, finished goods in 3-5).
 
+- **Compare Built-in vs cuOpt** (Plan page): plans the same open orders with both engines and saves nothing.
+  It shows late orders, hours past target, changeovers and the finish time, plus every order that moves.
+  Pick lists made by cuOpt also show the built-in route's walk.
+
 ### Changed
 - `aps/engine.py`: the step-placing code is shared by both engines (no behaviour change).
+- Slow cuOpt actions (re-plan, compare, pick routes) wait up to 3 minutes in the browser instead of 8 seconds.
+- With cuOpt chosen, re-plans triggered by a new order or released material run in the background, so the
+  click returns at once.
+
+### Fixed
+- Alert names for ERP alerts (`ERP_INBOX`, `ERP_OUTBOX`, `ERP_ERROR`) showed as raw codes.
 
 ## [3.5.1] - 2026-10-21 - Public website demo mode
 
