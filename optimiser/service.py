@@ -25,9 +25,11 @@ def raise_unavailable(tenant, what, exc):
     """Red alert. Nothing else changes: the last published plan / the stock pick stay as they were."""
     from inventory import alerts
     logger.error("cuOpt unavailable for %s: %s", what, exc)
+    kept = ("The last published plan is kept." if what == "production plan"
+            else "No route was given; the stock to pick is unchanged.")
     alerts.raise_alert(tenant, ALERT_KIND, f"cuOpt unavailable: {what} not optimised",
-                       f"{exc} The last published plan is kept. Fix the cuOpt server or switch the engine to "
-                       "Built-in in Settings → Integrations.", severity="alarm", dedupe_key=f"cuopt:{what}")
+                       f"{str(exc).rstrip('.')}. {kept} Fix the cuOpt server or switch the engine to Built-in in "
+                       "Settings → Integrations.", severity="alarm", dedupe_key=f"cuopt:{what}")
 
 
 def close_unavailable(tenant, what):

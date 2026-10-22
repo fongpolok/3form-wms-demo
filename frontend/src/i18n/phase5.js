@@ -8,6 +8,7 @@ export default {
       imported: 'Imported as {wo}.', rejectedMsg: 'Rejected. It will not be imported again.', synced: 'Sync finished ({n} step(s)).',
       outbox: 'Results to the ERP (outbox)', good: 'Good', scrap: 'Scrap', detail: 'Detail', status: { pending: 'Waiting', sent: 'Sent' },
     },
+    alerts: { kind: { ERP_INBOX: 'ERP inbox', ERP_OUTBOX: 'ERP results', ERP_ERROR: 'ERP connection' } },
     integrations: { erpHelp: 'SAP / Oracle send released orders in and get results back; Workday provides the staff list. Use Test to check the sign-in; orders are pulled every 15 minutes.' },
   },
   'zh-hant': {
@@ -17,6 +18,7 @@ export default {
       approve: '修正並匯入', reject: '拒絕', imported: '已匯入為 {wo}。', rejectedMsg: '已拒絕,不會再次匯入。', synced: '同步完成({n} 步)。',
       outbox: '回傳 ERP 的結果(寄件匣)', good: '良品', scrap: '報廢', detail: '詳情', status: { pending: '等待中', sent: '已傳送' },
     },
+    alerts: { kind: { ERP_INBOX: 'ERP 收件匣', ERP_OUTBOX: 'ERP 回傳', ERP_ERROR: 'ERP 連線' } },
     integrations: { erpHelp: 'SAP / Oracle 傳入已放行工單並接收結果;Workday 提供員工名單。按「測試」檢查登入;每 15 分鐘拉取工單。' },
   },
 }

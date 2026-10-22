@@ -14,6 +14,7 @@ export default {
       short: 'Not enough stock', batch: 'Pick list', depot: 'Start and finish at aisle {aisle}, position {position}.',
     },
     bins: { aisle: 'Aisle', position: 'Position', location: 'Location', setLocation: 'Save location', noLocation: 'not set' },
+    alerts: { kind: { OPTIMISER_UNAVAILABLE: 'cuOpt unavailable' } },
     plan: { engine: 'Planned by', engineBuiltin: 'built-in planner', engineCuopt: 'NVIDIA cuOpt' },
   },
   'zh-hant': {
@@ -30,6 +31,7 @@ export default {
       short: '庫存不足', batch: '揀貨單', depot: '由通道 {aisle}、位置 {position} 出發並返回。',
     },
     bins: { aisle: '通道', position: '位置', location: '位置', setLocation: '儲存位置', noLocation: '未設定' },
+    alerts: { kind: { OPTIMISER_UNAVAILABLE: 'cuOpt 無法使用' } },
     plan: { engine: '排程引擎', engineBuiltin: '內建排程', engineCuopt: 'NVIDIA cuOpt' },
   },
 }
